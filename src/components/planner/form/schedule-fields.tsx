@@ -10,14 +10,14 @@ export function ScheduleFields({ type }: { type: PlannerFormItemType }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <Form.Item
           name="startAt"
-          label="Ngày"
-          rules={[{ required: true, message: "Chọn ngày." }]}
+          label="Bắt đầu"
+          rules={[{ required: true, message: "Chọn ngày bắt đầu." }]}
         >
           <DatePicker className="w-full" format="DD/MM/YYYY" />
         </Form.Item>
         <Form.Item
           name="endAt"
-          label="Đến ngày (nếu có)"
+          label="Kết thúc (nếu có)"
           dependencies={["startAt"]}
           rules={[
             ({ getFieldValue }) => ({

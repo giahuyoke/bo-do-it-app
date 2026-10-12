@@ -7,7 +7,11 @@ import type { DashboardSection } from "@/components/dashboard/dashboard-sidebar"
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { useRealtimeTags } from "@/hooks/use-realtime-tags";
 import { useRealtimeTasks } from "@/hooks/use-realtime-tasks";
-import { plannerItemDate, type PlannerItem } from "@/lib/planner";
+import {
+  comparePlannerItems,
+  plannerItemDate,
+  type PlannerItem,
+} from "@/lib/planner";
 
 interface UsePlannerDashboardOptions {
   userId: string;
@@ -110,11 +114,7 @@ export function usePlannerDashboard({
           const date = plannerItemDate(item);
           return date && dayjs(date).isSame(selectedDate, "day");
         })
-        .sort(
-          (left, right) =>
-            plannerItemDate(left)!.getTime() -
-            plannerItemDate(right)!.getTime(),
-        ),
+        .sort(comparePlannerItems),
     [selectedDate, visibleItems],
   );
 
@@ -125,13 +125,17 @@ export function usePlannerDashboard({
           const date = plannerItemDate(item);
           return date && dayjs(date).isAfter(dayjs().endOf("day"));
         })
-        .sort(
-          (left, right) =>
-            plannerItemDate(left)!.getTime() -
-            plannerItemDate(right)!.getTime(),
-        )
+        .sort(comparePlannerItems)
         .slice(0, 4),
     [visibleItems],
+  );
+
+  const pendingTasks = useMemo(
+    () =>
+      allItems
+        .filter((item) => item.kind === "task" && item.data.status !== "done")
+        .sort(comparePlannerItems),
+    [allItems],
   );
 
   const nextReminder = useMemo(
@@ -158,6 +162,7 @@ export function usePlannerDashboard({
     eventError: eventsState.error,
     loading: tasksState.loading || eventsState.loading,
     nextReminder,
+    pendingTasks,
     selectedItems,
     tagError: tagsState.error,
     taskError: tasksState.error,

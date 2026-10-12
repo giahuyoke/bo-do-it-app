@@ -16,6 +16,28 @@ interface CalendarToolbarProps {
   onToday: () => void;
 }
 
+function weekRange(date: Dayjs) {
+  const start = date.startOf("week");
+  return { start, end: start.add(6, "day") };
+}
+
+/** Week view names the days it shows; month and list views name the month. */
+function periodLabel(date: Dayjs, view: PlannerView) {
+  if (view !== "week") return date.format("MMMM");
+  const { start, end } = weekRange(date);
+  return start.isSame(end, "month")
+    ? `${start.date()} – ${end.date()} ${end.format("MMMM")}`
+    : `${start.format("D/M")} – ${end.format("D/M")}`;
+}
+
+function periodYear(date: Dayjs, view: PlannerView) {
+  if (view !== "week") return date.format("YYYY");
+  const { start, end } = weekRange(date);
+  return start.isSame(end, "year")
+    ? end.format("YYYY")
+    : `${start.format("YYYY")} – ${end.format("YYYY")}`;
+}
+
 export function CalendarToolbar({
   visibleDate,
   view,
@@ -40,8 +62,8 @@ export function CalendarToolbar({
           />
         </Tooltip>
         <div className="planner-month-label">
-          <strong>{visibleDate.format("MMMM")}</strong>
-          <span>{visibleDate.format("YYYY")}</span>
+          <strong>{periodLabel(visibleDate, view)}</strong>
+          <span>{periodYear(visibleDate, view)}</span>
         </div>
         <Tooltip title={view === "week" ? "Tuần sau" : "Tháng sau"}>
           <Button

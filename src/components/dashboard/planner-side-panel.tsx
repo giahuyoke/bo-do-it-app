@@ -6,20 +6,11 @@ import {
   CheckSquareOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Divider,
-  Dropdown,
-  Empty,
-  Space,
-  Tag,
-  Typography,
-} from "antd";
+import { Button, Divider, Dropdown, Empty, Typography } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import type { PlannerItemType } from "@/components/dashboard/dashboard-types";
 import { DayItem } from "@/components/dashboard/day-item";
 import { ItemTitle } from "@/components/planner/item-title";
-import type { PlannerTag } from "@/lib/firebase/models";
 import { plannerItemDate, type PlannerItem } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
 
@@ -30,12 +21,9 @@ interface PlannerSidePanelProps {
   selectedItems: PlannerItem[];
   upcomingItems: PlannerItem[];
   nextReminder?: PlannerItem;
-  tags: PlannerTag[];
-  tagError: Error | null;
   onAdd: (type: PlannerItemType) => void;
   onEdit: (item: PlannerItem) => void;
   onToggleTask: (item: PlannerItem, completed: boolean) => void;
-  onOpenTags: () => void;
   onViewAgenda: () => void;
 }
 
@@ -44,12 +32,9 @@ export function PlannerSidePanel({
   selectedItems,
   upcomingItems,
   nextReminder,
-  tags,
-  tagError,
   onAdd,
   onEdit,
   onToggleTask,
-  onOpenTags,
   onViewAgenda,
 }: PlannerSidePanelProps) {
   return (
@@ -179,34 +164,6 @@ export function PlannerSidePanel({
             </Text>
           )}
         </div>
-      </section>
-
-      <Divider />
-
-      <section className="planner-panel-section">
-        <div className="planner-panel-heading">
-          <Title level={5} className="mb-0!">
-            Tag của bạn
-          </Title>
-          <Button
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={onOpenTags}
-          />
-        </div>
-        <Space className="mt-3" size={[6, 8]} wrap>
-          {tags.slice(0, 8).map((tag) => (
-            <Tag key={tag.id} className="planner-tag">
-              {tag.name}
-            </Tag>
-          ))}
-        </Space>
-        {tagError ? (
-          <Text type="danger" className="mt-2 block text-xs!">
-            Tag chưa thể đồng bộ.
-          </Text>
-        ) : null}
       </section>
     </aside>
   );

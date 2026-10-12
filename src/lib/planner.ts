@@ -9,13 +9,42 @@ export function plannerItemDate(item: PlannerItem) {
   return item.date;
 }
 
-/** Plans are date-only: a single day reads "Cả ngày", a span shows its dates. */
+/**
+ * Plans are date-only, so a single day needs no schedule text: only a span
+ * across days (or a missing date) is worth showing. Empty means "say nothing".
+ */
 export function plannerItemSchedule(item: PlannerItem) {
   const date = plannerItemDate(item);
   if (!date) return "Chưa đặt ngày";
   const endAt = item.data.endAt;
-  if (!endAt || dayjs(endAt).isSame(date, "day")) return "Cả ngày";
+  if (!endAt || dayjs(endAt).isSame(date, "day")) return "";
   return `${dayjs(date).format("DD/MM")} – ${dayjs(endAt).format("DD/MM")}`;
+}
+
+function isDone(item: PlannerItem) {
+  return item.kind === "task" && item.data.status === "done";
+}
+
+/**
+ * Day first, then open items above finished ones. Same-day items all start at
+ * midnight, so creation order breaks the tie instead of leaving it arbitrary.
+ * Undated items sort last.
+ */
+export function comparePlannerItems(left: PlannerItem, right: PlannerItem) {
+  const leftDate = plannerItemDate(left);
+  const rightDate = plannerItemDate(right);
+  if (!leftDate || !rightDate) return Number(!leftDate) - Number(!rightDate);
+  const byDay =
+    dayjs(leftDate).startOf("day").valueOf() -
+    dayjs(rightDate).startOf("day").valueOf();
+  if (byDay) return byDay;
+  const byDone = Number(isDone(left)) - Number(isDone(right));
+  if (byDone) return byDone;
+  const byTime = leftDate.getTime() - rightDate.getTime();
+  if (byTime) return byTime;
+  return (
+    (left.data.createdAt?.getTime() ?? 0) - (right.data.createdAt?.getTime() ?? 0)
+  );
 }
 
 export function defaultItemColor(kind: PlannerItem["kind"]) {

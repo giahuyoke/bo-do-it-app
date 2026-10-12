@@ -5,13 +5,15 @@ import {
   CheckCircleFilled,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { Calendar, Empty, Typography } from "antd";
 import type { CalendarProps } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
-import { useMemo } from "react";
+import { useMemo, type MouseEvent } from "react";
 import {
+  comparePlannerItems,
   plannerItemColor,
   plannerItemDate,
   plannerItemSchedule,
@@ -35,6 +37,34 @@ interface PlannerCalendarProps {
   onVisibleDateChange: (date: Dayjs) => void;
   onEditItem: (item: PlannerItem) => void;
   onToggleTask: (item: PlannerItem, completed: boolean) => void;
+  onAddItem: (date: Dayjs) => void;
+  /** "month" limits the list view to the visible month; "all" lists everything. */
+  agendaScope: "month" | "all";
+}
+
+/** Double-clicking empty space in a day adds to it; chips keep their own clicks. */
+function addOnDoubleClick(date: Dayjs, onAdd: (date: Dayjs) => void) {
+  return (event: MouseEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest(".planner-chip, .planner-cell-add")) return;
+    onAdd(date);
+  };
+}
+
+function AddDayButton({ date, onAdd }: { date: Dayjs; onAdd: (date: Dayjs) => void }) {
+  return (
+    <button
+      type="button"
+      className="planner-cell-add"
+      aria-label={`Thêm kế hoạch ngày ${date.format("DD/MM/YYYY")}`}
+      title="Thêm kế hoạch"
+      onClick={(event) => {
+        event.stopPropagation();
+        onAdd(date);
+      }}
+    >
+      <PlusOutlined />
+    </button>
+  );
 }
 
 function PlannerChip({
@@ -109,15 +139,11 @@ export function PlannerCalendar({
   onVisibleDateChange,
   onEditItem,
   onToggleTask,
+  onAddItem,
+  agendaScope,
 }: PlannerCalendarProps) {
   const datedItems = useMemo(
-    () =>
-      items
-        .filter((item) => plannerItemDate(item))
-        .sort(
-          (left, right) =>
-            plannerItemDate(left)!.getTime() - plannerItemDate(right)!.getTime(),
-        ),
+    () => items.filter((item) => plannerItemDate(item)).sort(comparePlannerItems),
     [items],
   );
 
@@ -137,7 +163,9 @@ export function PlannerCalendar({
             <div
               key={date.format("YYYY-MM-DD")}
               className={`planner-week-day ${isSelected ? "is-selected" : ""} ${date.isBefore(dayjs(), "day") ? "is-past" : ""}`}
+              onDoubleClick={addOnDoubleClick(date, onAddItem)}
             >
+              <AddDayButton date={date} onAdd={onAddItem} />
               <button type="button" className="planner-week-select" onClick={() => onSelectDate(date)} aria-label={`Chọn ngày ${date.format("DD/MM/YYYY")}`}>
               <span className="planner-week-label">{date.format("ddd")}</span>
               <span className="planner-week-number">{date.format("DD")}</span>
@@ -165,12 +193,23 @@ export function PlannerCalendar({
   }
 
   if (view === "agenda") {
-    const agendaItems = datedItems;
+    const agendaItems =
+      agendaScope === "month"
+        ? datedItems.filter((item) =>
+            dayjs(plannerItemDate(item)).isSame(visibleDate, "month"),
+          )
+        : datedItems;
 
     if (!agendaItems.length) {
       return (
         <div className="flex min-h-96 items-center justify-center">
-          <Empty description="Chưa có kế hoạch sắp tới" />
+          <Empty
+            description={
+              agendaScope === "month"
+                ? `Không có kế hoạch nào trong ${visibleDate.format("MMMM")}`
+                : "Không có kế hoạch nào"
+            }
+          />
         </div>
       );
     }
@@ -180,6 +219,7 @@ export function PlannerCalendar({
         {agendaItems.map((item) => {
           const date = dayjs(plannerItemDate(item));
           const color = plannerItemColor(item);
+          const schedule = plannerItemSchedule(item);
           return (
             <button
               type="button"
@@ -222,10 +262,17 @@ export function PlannerCalendar({
                   ) : <CalendarOutlined style={{ color }} />}
                   <ItemTitle title={item.data.title} completed={item.kind === "task" && item.data.status === "done"} className="truncate font-semibold text-slate-800" />
                 </div>
-                <Text type="secondary" className="mt-1 block text-xs!">
-                  <ClockCircleOutlined className="mr-1" /> {plannerItemSchedule(item)}
-                  {item.data.tagName ? ` · ${item.data.tagName}` : ""}
-                </Text>
+                {schedule || item.data.tagName ? (
+                  <Text type="secondary" className="mt-1 block text-xs!">
+                    {schedule ? (
+                      <>
+                        <ClockCircleOutlined className="mr-1" /> {schedule}
+                      </>
+                    ) : null}
+                    {schedule && item.data.tagName ? " · " : ""}
+                    {item.data.tagName}
+                  </Text>
+                ) : null}
               </div>
             </button>
           );
@@ -246,7 +293,9 @@ export function PlannerCalendar({
         className={`planner-date-cell ${!isCurrentMonth ? "is-muted" : ""} ${
           isSelected ? "is-selected" : ""
         } ${isPast ? "is-past" : ""} ${isToday ? "is-today" : ""}`}
+        onDoubleClick={addOnDoubleClick(date, onAddItem)}
       >
+        <AddDayButton date={date} onAdd={onAddItem} />
         <div className="planner-date-number-row">
           <span className={isToday ? "planner-today-number" : ""}>
             {date.date()}

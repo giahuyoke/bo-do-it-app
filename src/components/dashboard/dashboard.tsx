@@ -140,7 +140,9 @@ export function Dashboard() {
       <DashboardSidebar
         activeSection={activeSection}
         counts={planner.counts}
+        pendingTasks={planner.pendingTasks}
         onNavigate={navigate}
+        onOpenItem={openEdit}
         onOpenSettings={() =>
           void message.info("Cài đặt cá nhân sẽ sớm có mặt.")
         }
@@ -148,9 +150,11 @@ export function Dashboard() {
       <MobileDashboardNavigation
         activeSection={activeSection}
         counts={planner.counts}
+        pendingTasks={planner.pendingTasks}
         open={mobileNavigationOpen}
         onClose={closeMobileNavigation}
         onNavigate={navigate}
+        onOpenItem={openEdit}
       />
 
       <main className="planner-main">
@@ -217,6 +221,10 @@ export function Dashboard() {
                 onVisibleDateChange={setVisibleDate}
                 onEditItem={openEdit}
                 onToggleTask={toggleTask}
+                onAddItem={(date) => openCreate("event", date)}
+                // The calendar's own list is browsed month by month; the
+                // sidebar sections (upcoming, tasks…) list everything they match.
+                agendaScope={activeSection === "planner" ? "month" : "all"}
               />
             )}
           </section>
@@ -226,13 +234,10 @@ export function Dashboard() {
             selectedItems={planner.selectedItems}
             upcomingItems={planner.upcomingItems}
             nextReminder={planner.nextReminder}
-            tags={planner.allTags}
-            tagError={planner.tagError}
             onAdd={openCreate}
             onEdit={openEdit}
             onToggleTask={toggleTask}
-            onOpenTags={() => navigate("tags")}
-            onViewAgenda={() => setView("agenda")}
+            onViewAgenda={() => navigate("upcoming")}
           />
         </div>
         </>}

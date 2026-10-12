@@ -101,7 +101,7 @@ export function QuickAddDrawer({
       endAt: null,
       color: "",
       completed: false,
-      reminderMinutes: 15,
+      reminderMinutes: -1,
       tagId: undefined,
       note: "",
     });

@@ -763,9 +763,13 @@ select {
   font-family: var(--font-mono);
   font-size: 10px;
 }
+/* The theme makes large buttons 44px but large inputs stay taller; stretch
+   to the input beside it so the joined pair shares one edge. */
 .item-color-button {
   flex: 0 0 auto;
-  padding-inline: 10px !important;
+  align-self: stretch;
+  height: auto !important;
+  padding-inline: 12px !important;
 }
 .item-color-popover {
   width: 252px;
@@ -1889,6 +1893,128 @@ a:focus-visible {
     padding: 12px;
   }
 }
+/* Quick add from a day: a "+" that appears on hover or on the selected day.
+   The number row keeps room for it so the lunar date never sits underneath. */
+.planner-date-cell,
+.planner-week-day {
+  position: relative;
+}
+.planner-date-number-row {
+  padding-right: 24px;
+}
+.planner-cell-add {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #e6d6a6;
+  border-radius: 50%;
+  color: #805b17;
+  background: #fff8e3;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+.planner-cell-add:hover {
+  background: #f8e6b0;
+}
+.planner-date-cell:hover .planner-cell-add,
+.planner-date-cell.is-selected .planner-cell-add,
+.planner-week-day:hover .planner-cell-add,
+.planner-week-day.is-selected .planner-cell-add,
+.planner-cell-add:focus-visible {
+  opacity: 1;
+}
+@media (max-width: 680px) {
+  /* Cells are too small; mobile adds from the selected-day panel instead. */
+  .planner-cell-add {
+    display: none;
+  }
+  .planner-date-number-row {
+    padding-right: 0;
+  }
+}
+
+/* Sidebar: "Nhiệm vụ" row with a toggle that previews open tasks. */
+.planner-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.planner-nav-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.planner-side-nav .planner-nav-toggle {
+  width: 34px;
+  min-height: 34px;
+  flex: 0 0 34px;
+  justify-content: center;
+  padding: 0;
+  color: #8a7c60;
+  font-size: 10px;
+}
+.planner-nav-toggle .anticon {
+  transition: transform 160ms ease;
+}
+.planner-nav-toggle.is-open .anticon {
+  transform: rotate(180deg);
+}
+.planner-task-preview {
+  display: grid;
+  gap: 1px;
+  margin: 2px 0 6px 22px;
+  padding: 0 0 0 10px;
+  border-left: 1px solid #ecdfb7;
+  list-style: none;
+}
+.planner-task-preview,
+.planner-task-preview li {
+  min-width: 0;
+}
+.planner-side-nav .planner-task-preview button {
+  min-height: 30px;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: #5c513d;
+  font-size: 12px;
+  font-weight: 400;
+}
+.planner-task-preview i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+}
+.planner-task-preview .truncate {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planner-task-preview time {
+  flex-shrink: 0;
+  color: #9a8d72;
+  font-size: 10px;
+}
+.planner-side-nav .planner-task-preview .planner-task-preview-more {
+  color: #977025;
+  font-weight: 500;
+}
+.planner-task-preview-empty {
+  margin: 2px 0 6px 32px;
+  color: #9a8d72;
+  font-size: 12px;
+}
+
 /* List the app's own animated elements only. A wildcard override also reaches
    Ant Design popups, whose placement is measured mid-animation, and throws
    them off-screen. Ant Design's motion is turned off via the `motion` token
@@ -1901,7 +2027,9 @@ a:focus-visible {
   .day-item,
   .tag-color-palette button,
   .tag-color-custom,
-  .planner-stats button {
+  .planner-stats button,
+  .planner-cell-add,
+  .planner-nav-toggle .anticon {
     transition: none;
   }
 }
