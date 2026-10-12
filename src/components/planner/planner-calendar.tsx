@@ -15,7 +15,9 @@ import { useMemo, type MouseEvent } from "react";
 import {
   comparePlannerItems,
   plannerItemColor,
+  plannerItemCoversDay,
   plannerItemDate,
+  plannerItemOverlaps,
   plannerItemSchedule,
   type PlannerItem,
 } from "@/lib/planner";
@@ -148,7 +150,7 @@ export function PlannerCalendar({
   );
 
   const itemsForDate = (date: Dayjs) =>
-    datedItems.filter((item) => dayjs(plannerItemDate(item)).isSame(date, "day"));
+    datedItems.filter((item) => plannerItemCoversDay(item, date));
 
   if (view === "week") {
     const weekStart = visibleDate.startOf("week");
@@ -196,7 +198,11 @@ export function PlannerCalendar({
     const agendaItems =
       agendaScope === "month"
         ? datedItems.filter((item) =>
-            dayjs(plannerItemDate(item)).isSame(visibleDate, "month"),
+            plannerItemOverlaps(
+              item,
+              visibleDate.startOf("month"),
+              visibleDate.endOf("month"),
+            ),
           )
         : datedItems;
 

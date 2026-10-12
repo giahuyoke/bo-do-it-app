@@ -9,6 +9,7 @@ import { useRealtimeTags } from "@/hooks/use-realtime-tags";
 import { useRealtimeTasks } from "@/hooks/use-realtime-tasks";
 import {
   comparePlannerItems,
+  plannerItemCoversDay,
   plannerItemDate,
   type PlannerItem,
 } from "@/lib/planner";
@@ -55,7 +56,7 @@ export function usePlannerDashboard({
     const today = dayjs();
     return allItems.filter((item) => {
       const date = plannerItemDate(item);
-      if (section === "today" && (!date || !dayjs(date).isSame(today, "day"))) {
+      if (section === "today" && !plannerItemCoversDay(item, today)) {
         return false;
       }
       if (
@@ -90,10 +91,7 @@ export function usePlannerDashboard({
   const counts = useMemo(() => {
     const today = dayjs();
     return {
-      today: allItems.filter((item) => {
-        const date = plannerItemDate(item);
-        return date && dayjs(date).isSame(today, "day");
-      }).length,
+      today: allItems.filter((item) => plannerItemCoversDay(item, today)).length,
       upcoming: allItems.filter((item) => {
         const date = plannerItemDate(item);
         return (
@@ -110,10 +108,7 @@ export function usePlannerDashboard({
   const selectedItems = useMemo(
     () =>
       visibleItems
-        .filter((item) => {
-          const date = plannerItemDate(item);
-          return date && dayjs(date).isSame(selectedDate, "day");
-        })
+        .filter((item) => plannerItemCoversDay(item, selectedDate))
         .sort(comparePlannerItems),
     [selectedDate, visibleItems],
   );

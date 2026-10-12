@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import type { CalendarEvent, Task } from "@/lib/firebase/models";
 
 export type PlannerItem =
@@ -7,6 +7,20 @@ export type PlannerItem =
 
 export function plannerItemDate(item: PlannerItem) {
   return item.date;
+}
+
+/** True when the item falls on `day`, counting every day of a multi-day span. */
+export function plannerItemCoversDay(item: PlannerItem, day: Dayjs | Date) {
+  return plannerItemOverlaps(item, dayjs(day), dayjs(day));
+}
+
+/** True when any day of the item lies within `from`..`to` (inclusive days). */
+export function plannerItemOverlaps(item: PlannerItem, from: Dayjs, to: Dayjs) {
+  const date = plannerItemDate(item);
+  if (!date) return false;
+  const start = dayjs(date);
+  const end = dayjs(item.data.endAt ?? date);
+  return !start.isAfter(to, "day") && !end.isBefore(from, "day");
 }
 
 /**

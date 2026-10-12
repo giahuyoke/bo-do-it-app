@@ -104,9 +104,13 @@ function TaskPreview({
   tasks,
   onNavigate,
   onOpenItem,
-}: Pick<NavigationProps, "onNavigate" | "onOpenItem"> & { tasks: PlannerItem[] }) {
+}: Pick<NavigationProps, "onNavigate" | "onOpenItem"> & {
+  tasks: PlannerItem[];
+}) {
   if (!tasks.length) {
-    return <p className="planner-task-preview-empty">Không có nhiệm vụ đang chờ.</p>;
+    return (
+      <p className="planner-task-preview-empty">Không có nhiệm vụ đang chờ.</p>
+    );
   }
 
   return (
@@ -117,7 +121,11 @@ function TaskPreview({
           <li key={item.data.id}>
             <button type="button" onClick={() => onOpenItem(item)}>
               <i style={{ backgroundColor: plannerItemColor(item) }} />
-              <ItemTitle title={item.data.title} completed={false} className="truncate" />
+              <ItemTitle
+                title={item.data.title}
+                completed={false}
+                className="truncate"
+              />
               {date ? <time>{dayjs(date).format("DD/MM")}</time> : null}
             </button>
           </li>
@@ -145,7 +153,8 @@ function DashboardNavigation({
   onNavigate,
   onOpenItem,
 }: NavigationProps) {
-  const [tasksExpanded, setTasksExpanded] = useState(false);
+  // Open by default so pending tasks are visible at a glance.
+  const [tasksExpanded, setTasksExpanded] = useState(true);
 
   return (
     <nav className="planner-side-nav" aria-label="Điều hướng chính">
@@ -183,7 +192,9 @@ function DashboardNavigation({
                     className={`planner-nav-toggle ${tasksExpanded ? "is-open" : ""}`}
                     aria-expanded={tasksExpanded}
                     aria-controls="planner-task-preview"
-                    aria-label={tasksExpanded ? "Thu gọn nhiệm vụ" : "Xem nhanh nhiệm vụ"}
+                    aria-label={
+                      tasksExpanded ? "Thu gọn nhiệm vụ" : "Xem nhanh nhiệm vụ"
+                    }
                     onClick={() => setTasksExpanded((open) => !open)}
                   >
                     <DownOutlined />
@@ -254,8 +265,8 @@ export function DashboardSidebar({
       <div className="planner-brand">
         <span className="planner-logo">B</span>
         <div>
-          <strong>Bo-Do-It</strong>
-          <span>Simple planner</span>
+          <strong>Bo do it</strong>
+          <span>For my wife</span>
         </div>
       </div>
 

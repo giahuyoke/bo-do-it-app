@@ -1941,6 +1941,28 @@ a:focus-visible {
   }
 }
 
+/* Plan editor: one "Bắt đầu – Kết thúc" row per date range. Only the first
+   row carries labels, so later rows sit tight underneath it. */
+.schedule-range-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0 12px;
+}
+.schedule-range-row:not(:first-child) .ant-form-item {
+  margin-bottom: 12px;
+}
+.schedule-range-row .schedule-range-remove {
+  margin-bottom: 24px;
+}
+.schedule-range-row:not(:first-child) .schedule-range-remove {
+  margin-bottom: 12px;
+}
+.schedule-ranges .schedule-range-add {
+  margin: -8px 0 16px;
+  padding-inline: 0 !important;
+}
+
 /* Sidebar: "Nhiệm vụ" row with a toggle that previews open tasks. */
 .planner-nav-row {
   display: flex;

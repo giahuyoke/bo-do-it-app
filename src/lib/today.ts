@@ -1,15 +1,14 @@
-import dayjs, { type Dayjs } from "dayjs";
+import type { Dayjs } from "dayjs";
 import {
   comparePlannerItems,
-  plannerItemDate,
+  plannerItemCoversDay,
   type PlannerItem,
 } from "@/lib/planner";
 
 export function todaySections(items: PlannerItem[], today: Dayjs, search = "") {
   const term = search.trim().toLocaleLowerCase("vi");
   const todayItems = items.filter((item) => {
-    const date = plannerItemDate(item);
-    return date && dayjs(date).isSame(today, "day") &&
+    return plannerItemCoversDay(item, today) &&
       (!term || [item.data.title, item.data.description, item.data.tagName]
         .join(" ").toLocaleLowerCase("vi").includes(term));
   }).sort(comparePlannerItems);

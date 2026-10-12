@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   Timestamp,
   updateDoc,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
@@ -88,6 +89,33 @@ export function updateTask(userId: string, taskId: string, input: TaskInput) {
     ...taskPayload(input),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Saves one task per date range in a single batch: the first input updates
+ * `existingId` when given, every other input becomes a new task.
+ */
+export function saveTaskSeries(
+  userId: string,
+  existingId: string | null,
+  inputs: TaskInput[],
+) {
+  const batch = writeBatch(getFirestoreDb());
+  inputs.forEach((input, index) => {
+    if (index === 0 && existingId) {
+      batch.update(doc(tasksCollection(userId), existingId), {
+        ...taskPayload(input),
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+    batch.set(doc(tasksCollection(userId)), {
+      ...taskPayload(input),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+  return batch.commit();
 }
 
 export function deleteTask(userId: string, taskId: string) {

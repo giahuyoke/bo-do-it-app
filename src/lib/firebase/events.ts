@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   Timestamp,
   updateDoc,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
@@ -78,6 +79,30 @@ export function updateEvent(
     ...eventPayload(input),
     updatedAt: serverTimestamp(),
   });
+}
+
+/** Event twin of `saveTaskSeries`: first input may update, the rest create. */
+export function saveEventSeries(
+  userId: string,
+  existingId: string | null,
+  inputs: EventInput[],
+) {
+  const batch = writeBatch(getFirestoreDb());
+  inputs.forEach((input, index) => {
+    if (index === 0 && existingId) {
+      batch.update(doc(eventsCollection(userId), existingId), {
+        ...eventPayload(input),
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+    batch.set(doc(eventsCollection(userId)), {
+      ...eventPayload(input),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+  return batch.commit();
 }
 
 export function deleteEvent(userId: string, eventId: string) {

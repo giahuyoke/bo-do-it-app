@@ -20,13 +20,13 @@ import type {
   PlannerFormItemType,
   PlannerFormValues,
 } from "@/components/planner/form/types";
-import { createEvent, deleteEvent, updateEvent } from "@/lib/firebase/events";
+import { deleteEvent, saveEventSeries } from "@/lib/firebase/events";
 import type {
   EventInput,
   PlannerTag,
   TaskInput,
 } from "@/lib/firebase/models";
-import { createTask, deleteTask, updateTask } from "@/lib/firebase/tasks";
+import { deleteTask, saveTaskSeries } from "@/lib/firebase/tasks";
 import { defaultItemColor, type PlannerItem } from "@/lib/planner";
 
 interface QuickAddDrawerProps {
@@ -69,8 +69,10 @@ export function QuickAddDrawer({
       form.setFieldsValue({
         type: "task",
         title: item.data.title,
-        startAt: item.data.deadline ? dayjs(item.data.deadline) : initialDate,
-        endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
+        ranges: [{
+          startAt: item.data.deadline ? dayjs(item.data.deadline) : initialDate,
+          endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
+        }],
         color: item.data.tagColor,
         completed: item.data.status === "done",
         reminderMinutes: item.data.reminderMinutes ?? -1,
@@ -84,8 +86,10 @@ export function QuickAddDrawer({
       form.setFieldsValue({
         type: "event",
         title: item.data.title,
-        startAt: dayjs(item.data.startAt),
-        endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
+        ranges: [{
+          startAt: dayjs(item.data.startAt),
+          endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
+        }],
         color: item.data.tagColor,
         reminderMinutes: item.data.reminderMinutes ?? -1,
         tagId: knownTagId(item.data.tagId),
@@ -97,8 +101,7 @@ export function QuickAddDrawer({
     form.setFieldsValue({
       type: initialType,
       title: "",
-      startAt: initialDate.startOf("day"),
-      endAt: null,
+      ranges: [{ startAt: initialDate.startOf("day"), endAt: null }],
       color: "",
       completed: false,
       reminderMinutes: -1,
@@ -124,44 +127,54 @@ export function QuickAddDrawer({
 
     // Plans are date-only: span from the start of the first day to the end of
     // the last, so a same-day end still satisfies the rules' endAt > startAt.
-    const startAt = values.startAt?.startOf("day") ?? null;
-    const endAt = values.endAt?.endOf("day") ?? null;
+    const ranges = values.ranges.flatMap((range) =>
+      range.startAt
+        ? [{
+            startAt: range.startAt.startOf("day").toDate(),
+            endAt: range.endAt?.endOf("day").toDate() ?? null,
+          }]
+        : [],
+    );
+    // Extra rows are new copies: they start open, whatever the first row says.
+    const isCopy = (index: number) => index > 0;
 
     try {
+      if (!ranges.length) return;
+
       if (values.type === "task") {
-        const taskInput: TaskInput = {
+        const existing = item?.kind === "task" ? item.data : null;
+        const taskInputs = ranges.map((range, index): TaskInput => ({
           ...sharedFields,
-          deadline: startAt?.toDate() ?? null,
-          endAt: endAt?.toDate() ?? null,
-          completed: values.completed ?? false,
-          priority: item?.kind === "task" ? item.data.priority : "medium",
-          status: item?.kind === "task" && item.data.status === "in_progress" ? "in_progress" : "todo",
-        };
-
-        if (item?.kind === "task") {
-          await updateTask(userId, item.data.id, taskInput);
-        } else {
-          await createTask(userId, taskInput);
-        }
+          deadline: range.startAt,
+          endAt: range.endAt,
+          completed: isCopy(index) ? false : (values.completed ?? false),
+          priority: existing?.priority ?? "medium",
+          status:
+            !isCopy(index) && existing?.status === "in_progress" ? "in_progress" : "todo",
+        }));
+        await saveTaskSeries(userId, existing?.id ?? null, taskInputs);
       } else {
-        if (!startAt) return;
-
-        const eventInput: EventInput = {
+        const existing = item?.kind === "event" ? item.data : null;
+        const eventInputs = ranges.map((range, index): EventInput => ({
           ...sharedFields,
-          // The form no longer edits location; keep whatever an event had.
-          location: item?.kind === "event" ? item.data.location : "",
-          startAt: startAt.toDate(),
-          endAt: endAt?.toDate() ?? null,
-        };
-
-        if (item?.kind === "event") {
-          await updateEvent(userId, item.data.id, eventInput);
-        } else {
-          await createEvent(userId, eventInput);
-        }
+          // The form no longer edits location; the edited event keeps its own.
+          location: existing && !isCopy(index) ? existing.location : "",
+          startAt: range.startAt,
+          endAt: range.endAt,
+        }));
+        await saveEventSeries(userId, existing?.id ?? null, eventInputs);
       }
 
-      void message.success(item ? "Đã cập nhật kế hoạch." : "Đã thêm vào planner.");
+      const added = item ? ranges.length - 1 : ranges.length;
+      void message.success(
+        item
+          ? added
+            ? `Đã cập nhật và thêm ${added} kế hoạch mới.`
+            : "Đã cập nhật kế hoạch."
+          : added > 1
+            ? `Đã thêm ${added} kế hoạch.`
+            : "Đã thêm vào planner.",
+      );
 
       if (saveAndContinue.current && !item) {
         form.setFieldsValue({ title: "", note: "" });
