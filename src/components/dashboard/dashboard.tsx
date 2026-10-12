@@ -23,6 +23,7 @@ import {
   PlannerCalendar,
   type PlannerView,
 } from "@/components/planner/planner-calendar";
+import { ClassScheduleModal } from "@/components/planner/class-schedule-modal";
 import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
 import { NotesPage } from "@/components/notes/notes-page";
@@ -53,6 +54,7 @@ export function Dashboard() {
   const [drawer, setDrawer] =
     useState<PlannerDrawerState>(initialDrawerState);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [classScheduleOpen, setClassScheduleOpen] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   const planner = usePlannerDashboard({
@@ -269,6 +271,7 @@ export function Dashboard() {
             upcomingItems={planner.upcomingItems}
             nextReminder={planner.nextReminder}
             onAdd={openCreate}
+            onImportClassSchedule={() => setClassScheduleOpen(true)}
             onEdit={openEdit}
             onToggleTask={toggleTask}
             onViewAgenda={() => navigate("upcoming")}
@@ -289,6 +292,12 @@ export function Dashboard() {
         onClose={closeDrawer}
         onCreated={drawer.onCreated}
         onOpenTagManager={() => setTagManagerOpen(true)}
+      />
+      <ClassScheduleModal
+        userId={user.uid}
+        open={classScheduleOpen}
+        initialDate={selectedDate}
+        onClose={() => setClassScheduleOpen(false)}
       />
       <TagManagerModal
         userId={user.uid}

@@ -5,6 +5,7 @@ import {
   CalendarOutlined,
   CheckSquareOutlined,
   PlusOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import { Button, Divider, Dropdown, Empty, Typography } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
@@ -22,6 +23,7 @@ interface PlannerSidePanelProps {
   upcomingItems: PlannerItem[];
   nextReminder?: PlannerItem;
   onAdd: (type: PlannerItemType) => void;
+  onImportClassSchedule: () => void;
   onEdit: (item: PlannerItem) => void;
   onToggleTask: (item: PlannerItem, completed: boolean) => void;
   onViewAgenda: () => void;
@@ -33,6 +35,7 @@ export function PlannerSidePanel({
   upcomingItems,
   nextReminder,
   onAdd,
+  onImportClassSchedule,
   onEdit,
   onToggleTask,
   onViewAgenda,
@@ -75,6 +78,13 @@ export function PlannerSidePanel({
                   label: "Thêm nhiệm vụ",
                   onClick: () => onAdd("task"),
                 },
+                { type: "divider" },
+                {
+                  key: "class-schedule",
+                  icon: <ReadOutlined />,
+                  label: "Nhập lịch học",
+                  onClick: onImportClassSchedule,
+                },
               ],
             }}
           >
@@ -96,6 +106,10 @@ export function PlannerSidePanel({
           <button type="button" onClick={() => onAdd("event")}>
             <CalendarOutlined aria-hidden="true" />
             <span>Thêm lịch trình</span>
+          </button>
+          <button type="button" onClick={onImportClassSchedule}>
+            <ReadOutlined aria-hidden="true" />
+            <span>Nhập lịch học</span>
           </button>
         </div>
 

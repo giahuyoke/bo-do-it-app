@@ -2141,6 +2141,48 @@ a:focus-visible {
   }
 }
 
+/* Class schedule import: weekday toggles and a live summary of the sessions. */
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.weekday-picker button {
+  min-height: 40px;
+  border: 1px solid #e6dcc3;
+  border-radius: 10px;
+  color: #5c513d;
+  background: #fffdf7;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.weekday-picker button:hover {
+  border-color: #d8c48f;
+}
+.weekday-picker button.is-selected {
+  border-color: #c9a33d;
+  color: #4d370c;
+  background: linear-gradient(115deg, #f2d47d, #ebc268);
+}
+.class-schedule-summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #5c513d;
+  background: #fbf3dc;
+  font-size: 13px;
+}
+.class-schedule-summary.is-warning {
+  color: #9a4a1c;
+  background: #fdebdd;
+}
+@media (max-width: 680px) {
+  .planner-day-add-actions button:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
 /* List the app's own animated elements only. A wildcard override also reaches
    Ant Design popups, whose placement is measured mid-animation, and throws
    them off-screen. Ant Design's motion is turned off via the `motion` token
