@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { describe, expect, test } from "vitest";
 import {
+  compareByCreation,
   comparePlannerItems,
   plannerItemCoversDay,
   plannerItemOverlaps,
@@ -25,22 +26,23 @@ function task(
   } };
 }
 
-describe("comparePlannerItems", () => {
-  test("puts finished tasks after open ones on the same day", () => {
-    const done = task("done", day.toDate(), { status: "done", createdAt: new Date(1) });
-    const open = task("open", day.toDate(), { createdAt: new Date(2) });
-    expect([done, open].sort(comparePlannerItems).map((item) => item.data.id)).toEqual(["open", "done"]);
+describe("planner ordering", () => {
+  test("within a day, the plan entered first stays on top, finished or not", () => {
+    const first = task("first", day.toDate(), { status: "done", createdAt: new Date(1) });
+    const second = task("second", day.toDate(), { createdAt: new Date(2) });
+    const pending = task("pending", day.toDate()); // not stamped by the server yet
+    expect([pending, second, first].sort(compareByCreation).map((item) => item.data.id))
+      .toEqual(["first", "second", "pending"]);
   });
 
-  test("orders by day before status, and breaks same-day ties by creation", () => {
-    const tomorrow = task("tomorrow", day.add(1, "day").toDate());
-    const doneToday = task("doneToday", day.toDate(), { status: "done" });
+  test("across days, orders by day first, then entry order, undated last", () => {
+    const tomorrow = task("tomorrow", day.add(1, "day").toDate(), { createdAt: new Date(1) });
     const later = task("later", day.toDate(), { createdAt: new Date(20) });
     const earlier = task("earlier", day.toDate(), { createdAt: new Date(10) });
     const undated = task("undated", null);
     expect(
-      [undated, tomorrow, doneToday, later, earlier].sort(comparePlannerItems).map((item) => item.data.id),
-    ).toEqual(["earlier", "later", "doneToday", "tomorrow", "undated"]);
+      [undated, tomorrow, later, earlier].sort(comparePlannerItems).map((item) => item.data.id),
+    ).toEqual(["earlier", "later", "tomorrow", "undated"]);
   });
 });
 

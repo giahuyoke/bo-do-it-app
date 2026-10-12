@@ -30,12 +30,14 @@ describe("Today tab", () => {
     expect(todaySections([unchecked], today)).toMatchObject({ pending: [unchecked], completed: [] });
   });
 
-  test("sorts pending tasks chronologically without mutating the source", () => {
-    const afternoon = task("afternoon", today.hour(16).toDate());
-    const morning = task("morning", today.hour(8).toDate(), "in_progress");
-    const items = [afternoon, morning];
-    expect(todaySections(items, today).pending).toEqual([morning, afternoon]);
-    expect(items).toEqual([afternoon, morning]);
+  test("lists pending tasks in the order they were entered without mutating the source", () => {
+    const entered = (item: PlannerItem, at: number): PlannerItem =>
+      ({ ...item, data: { ...item.data, createdAt: new Date(at) } }) as PlannerItem;
+    const second = entered(task("second", today.hour(8).toDate()), 2);
+    const first = entered(task("first", today.hour(16).toDate(), "in_progress"), 1);
+    const items = [second, first];
+    expect(todaySections(items, today).pending).toEqual([first, second]);
+    expect(items).toEqual([second, first]);
   });
 
   test("search applies to today's completed tasks and events without including tomorrow", () => {

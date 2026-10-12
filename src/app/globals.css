@@ -427,6 +427,11 @@ select {
   text-decoration-thickness: 1.5px;
   color: #817763;
 }
+/* Tasks read bold in the calendar, done or not, so they stand apart from events. */
+.planner-chip.task,
+.planner-chip.task .planner-completed-title {
+  font-weight: 700;
+}
 .planner-chip-check,
 .planner-agenda-check {
   display: inline-flex;

@@ -1,6 +1,6 @@
 import type { Dayjs } from "dayjs";
 import {
-  comparePlannerItems,
+  compareByCreation,
   plannerItemCoversDay,
   type PlannerItem,
 } from "@/lib/planner";
@@ -11,7 +11,7 @@ export function todaySections(items: PlannerItem[], today: Dayjs, search = "") {
     return plannerItemCoversDay(item, today) &&
       (!term || [item.data.title, item.data.description, item.data.tagName]
         .join(" ").toLocaleLowerCase("vi").includes(term));
-  }).sort(comparePlannerItems);
+  }).sort(compareByCreation);
 
   return {
     pending: todayItems.filter((item) => item.kind === "task" && item.data.status !== "done"),

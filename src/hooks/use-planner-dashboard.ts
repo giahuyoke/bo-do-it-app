@@ -8,6 +8,7 @@ import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { useRealtimeTags } from "@/hooks/use-realtime-tags";
 import { useRealtimeTasks } from "@/hooks/use-realtime-tasks";
 import {
+  compareByCreation,
   comparePlannerItems,
   plannerItemCoversDay,
   plannerItemDate,
@@ -109,7 +110,7 @@ export function usePlannerDashboard({
     () =>
       visibleItems
         .filter((item) => plannerItemCoversDay(item, selectedDate))
-        .sort(comparePlannerItems),
+        .sort(compareByCreation),
     [selectedDate, visibleItems],
   );
 

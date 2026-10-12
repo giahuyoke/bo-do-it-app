@@ -35,15 +35,19 @@ export function plannerItemSchedule(item: PlannerItem) {
   return `${dayjs(date).format("DD/MM")} – ${dayjs(endAt).format("DD/MM")}`;
 }
 
-function isDone(item: PlannerItem) {
-  return item.kind === "task" && item.data.status === "done";
+/**
+ * Within one day, plans read in the order they were entered. A just-saved plan
+ * has no `createdAt` until the server stamps it, so it counts as newest.
+ */
+export function compareByCreation(left: PlannerItem, right: PlannerItem) {
+  const created = (item: PlannerItem) =>
+    item.data.createdAt?.getTime() ?? Number.POSITIVE_INFINITY;
+  const leftCreated = created(left);
+  const rightCreated = created(right);
+  return leftCreated === rightCreated ? 0 : leftCreated < rightCreated ? -1 : 1;
 }
 
-/**
- * Day first, then open items above finished ones. Same-day items all start at
- * midnight, so creation order breaks the tie instead of leaving it arbitrary.
- * Undated items sort last.
- */
+/** Lists spanning several days: by start day, then in entry order. Undated last. */
 export function comparePlannerItems(left: PlannerItem, right: PlannerItem) {
   const leftDate = plannerItemDate(left);
   const rightDate = plannerItemDate(right);
@@ -51,14 +55,7 @@ export function comparePlannerItems(left: PlannerItem, right: PlannerItem) {
   const byDay =
     dayjs(leftDate).startOf("day").valueOf() -
     dayjs(rightDate).startOf("day").valueOf();
-  if (byDay) return byDay;
-  const byDone = Number(isDone(left)) - Number(isDone(right));
-  if (byDone) return byDone;
-  const byTime = leftDate.getTime() - rightDate.getTime();
-  if (byTime) return byTime;
-  return (
-    (left.data.createdAt?.getTime() ?? 0) - (right.data.createdAt?.getTime() ?? 0)
-  );
+  return byDay || compareByCreation(left, right);
 }
 
 export function defaultItemColor(kind: PlannerItem["kind"]) {

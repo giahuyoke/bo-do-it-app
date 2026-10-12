@@ -13,6 +13,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { useMemo, type MouseEvent } from "react";
 import {
+  compareByCreation,
   comparePlannerItems,
   plannerItemColor,
   plannerItemCoversDay,
@@ -150,7 +151,9 @@ export function PlannerCalendar({
   );
 
   const itemsForDate = (date: Dayjs) =>
-    datedItems.filter((item) => plannerItemCoversDay(item, date));
+    datedItems
+      .filter((item) => plannerItemCoversDay(item, date))
+      .sort(compareByCreation);
 
   if (view === "week") {
     const weekStart = visibleDate.startOf("week");
