@@ -1,18 +1,33 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Be_Vietnam_Pro } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
+const font = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-vietnam",
+  display: "swap",
+});
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#faf8f1",
+};
+
 export const metadata: Metadata = {
   title: "Bo Do It",
-  description: "Dự án Next.js với Tailwind CSS và Ant Design.",
+  description: "Planner cá nhân trực quan cho lịch trình và nhiệm vụ hằng ngày.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className="h-full antialiased">
+    <html lang="vi" className={`${font.variable} h-full antialiased`}>
       <head>
         <style>{"@layer theme, base, antd, components, utilities;"}</style>
       </head>

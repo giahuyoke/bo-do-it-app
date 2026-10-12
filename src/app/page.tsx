@@ -1,9 +1,12 @@
-import { StarterCard } from "@/components/starter-card";
+import { AuthGate } from "@/components/auth/auth-gate";
+import { Dashboard } from "@/components/dashboard/dashboard";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-16 sm:px-6">
-      <StarterCard />
+    <main className="min-h-screen">
+      <AuthGate>
+        <Dashboard />
+      </AuthGate>
     </main>
   );
 }

@@ -1,0 +1,197 @@
+rules_version = '2';
+
+// Data model:
+// users/{userId}/tasks/{taskId}
+//   title: string (1..200), description: string (0..2000),
+//   deadline: timestamp|null, endAt: timestamp|null, priority: low|medium|high,
+//   status: todo|in_progress|done, tagId: string|null, tagName/tagColor: string,
+//   reminderMinutes: int|null, createdAt/updatedAt: timestamp.
+// users/{userId}/events/{eventId}
+//   title: string (1..200), description: string (0..2000),
+//   location: string (0..300), startAt: timestamp, endAt: timestamp|null,
+//   tagId: string|null, tagName/tagColor: string, reminderMinutes: int|null,
+//   createdAt/updatedAt: timestamp.
+// users/{userId}/tags/{tagId}
+//   name: string (1..40), color: six-digit hex string, createdAt/updatedAt: timestamp.
+// All documents are private to the authenticated user identified by {userId}.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasValidTaskFields(data) {
+      return data.keys().hasAll([
+          'title',
+          'description',
+          'deadline',
+          'endAt',
+          'priority',
+          'status',
+          'tagId',
+          'tagName',
+          'tagColor',
+          'reminderMinutes',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title',
+          'description',
+          'deadline',
+          'endAt',
+          'priority',
+          'status',
+          'tagId',
+          'tagName',
+          'tagColor',
+          'reminderMinutes',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 200
+        && data.description is string
+        && data.description.size() <= 2000
+        && (data.deadline == null || data.deadline is timestamp)
+        && (data.endAt == null || data.endAt is timestamp)
+        && (data.deadline == null || data.endAt == null || data.endAt > data.deadline)
+        && data.priority in ['low', 'medium', 'high']
+        && data.status in ['todo', 'in_progress', 'done']
+        && (data.tagId == null || (data.tagId is string && data.tagId.size() <= 100))
+        && data.tagName is string
+        && data.tagName.size() <= 40
+        && data.tagColor is string
+        && (data.tagColor == '' || data.tagColor.matches('^#[0-9a-fA-F]{6}$'))
+        && (data.reminderMinutes == null || data.reminderMinutes in [5, 15, 30, 60, 1440])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function hasValidEventFields(data) {
+      return data.keys().hasAll([
+          'title',
+          'description',
+          'location',
+          'startAt',
+          'endAt',
+          'tagId',
+          'tagName',
+          'tagColor',
+          'reminderMinutes',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title',
+          'description',
+          'location',
+          'startAt',
+          'endAt',
+          'tagId',
+          'tagName',
+          'tagColor',
+          'reminderMinutes',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 200
+        && data.description is string
+        && data.description.size() <= 2000
+        && data.location is string
+        && data.location.size() <= 300
+        && data.startAt is timestamp
+        && (data.endAt == null || data.endAt is timestamp)
+        && (data.endAt == null || data.endAt > data.startAt)
+        && (data.tagId == null || (data.tagId is string && data.tagId.size() <= 100))
+        && data.tagName is string
+        && data.tagName.size() <= 40
+        && data.tagColor is string
+        && (data.tagColor == '' || data.tagColor.matches('^#[0-9a-fA-F]{6}$'))
+        && (data.reminderMinutes == null || data.reminderMinutes in [5, 15, 30, 60, 1440])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function hasValidTagFields(data) {
+      return data.keys().hasAll(['name', 'color', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'color', 'createdAt', 'updatedAt'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 40
+        && data.color is string
+        && data.color.matches('^#[0-9a-fA-F]{6}$')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId}/tasks/{taskId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId)
+        && request.query.limit != null
+        && request.query.limit <= 200;
+
+      allow create: if isOwner(userId)
+        && hasValidTaskFields(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && hasValidTaskFields(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/events/{eventId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId)
+        && request.query.limit != null
+        && request.query.limit <= 200;
+
+      allow create: if isOwner(userId)
+        && hasValidEventFields(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && hasValidEventFields(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/tags/{tagId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId)
+        && request.query.limit != null
+        && request.query.limit <= 100;
+
+      allow create: if isOwner(userId)
+        && hasValidTagFields(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && hasValidTagFields(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

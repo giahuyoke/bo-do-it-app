@@ -1,0 +1,259 @@
+"use client";
+
+import { Alert, App, Skeleton } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
+import { useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { CalendarToolbar } from "@/components/dashboard/calendar-toolbar";
+import {
+  DashboardSidebar,
+  MobileDashboardNavigation,
+  MobileBottomNavigation,
+  type DashboardSection,
+} from "@/components/dashboard/dashboard-sidebar";
+import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
+import type {
+  ItemFilter,
+  PlannerDrawerState,
+  PlannerItemType,
+} from "@/components/dashboard/dashboard-types";
+import { PlannerSidePanel } from "@/components/dashboard/planner-side-panel";
+import {
+  PlannerCalendar,
+  type PlannerView,
+} from "@/components/planner/planner-calendar";
+import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
+import { TagManagerModal } from "@/components/planner/tag-manager-modal";
+import { usePlannerDashboard } from "@/hooks/use-planner-dashboard";
+import { defaultPlannerTags, type PlannerItem } from "@/lib/planner";
+import { setTaskCompleted } from "@/lib/firebase/tasks";
+import { firebaseErrorMessage } from "@/lib/firebase/errors";
+
+const initialDrawerState: PlannerDrawerState = {
+  open: false,
+  type: "event",
+  item: null,
+};
+
+export function Dashboard() {
+  const { message } = App.useApp();
+  const { signOut, user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [visibleDate, setVisibleDate] = useState(dayjs());
+  const [view, setView] = useState<PlannerView>("month");
+  const [filter, setFilter] = useState<ItemFilter>("all");
+  const [search, setSearch] = useState("");
+  const [activeSection, setActiveSection] =
+    useState<DashboardSection>("planner");
+  const [drawer, setDrawer] =
+    useState<PlannerDrawerState>(initialDrawerState);
+  const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+
+  const planner = usePlannerDashboard({
+    userId: user?.uid ?? "",
+    filter,
+    search,
+    selectedDate,
+    section: activeSection,
+  });
+
+  if (!user) return null;
+
+  const closeMobileNavigation = () => setMobileNavigationOpen(false);
+
+  const selectDate = (date: Dayjs) => {
+    setSelectedDate(date);
+    setVisibleDate(date);
+    setActiveSection(date.isSame(dayjs(), "day") ? "today" : "planner");
+  };
+
+  const goToToday = () => {
+    const today = dayjs();
+    setSelectedDate(today);
+    setVisibleDate(today);
+    setView("month");
+  };
+
+  const navigate = (section: DashboardSection) => {
+    setActiveSection(section);
+    setFilter("all");
+    closeMobileNavigation();
+
+    if (section === "today") {
+      goToToday();
+      return;
+    }
+
+    if (section === "planner") {
+      setView("month");
+      setFilter("all");
+      return;
+    }
+
+    if (section === "upcoming") {
+      setSelectedDate(dayjs());
+      setView("agenda");
+      setFilter("all");
+      return;
+    }
+
+    if (section === "tasks" || section === "completed") {
+      setView("agenda");
+      setFilter("task");
+      return;
+    }
+
+  };
+
+  const openCreate = (type: PlannerItemType, date = selectedDate) => {
+    setSelectedDate(date);
+    setDrawer({ open: true, type, item: null });
+  };
+
+  const openEdit = (item: PlannerItem) => {
+    setDrawer({ open: true, type: item.kind, item });
+  };
+
+  const closeDrawer = () => {
+    setDrawer((current) => ({ ...current, open: false, item: null }));
+  };
+
+  const changeFilter = (nextFilter: ItemFilter) => {
+    setFilter(nextFilter);
+    setActiveSection(nextFilter === "task" ? "tasks" : "planner");
+  };
+
+  const toggleTask = async (item: PlannerItem, completed: boolean) => {
+    if (item.kind !== "task") return;
+    try {
+      await setTaskCompleted(user.uid, item.data.id, completed);
+    } catch (error) {
+      void message.error(
+        firebaseErrorMessage(error, "Không thể cập nhật công việc."),
+      );
+    }
+  };
+
+  return (
+    <div className="planner-shell">
+      <DashboardSidebar
+        activeSection={activeSection}
+        counts={planner.counts}
+        onNavigate={navigate}
+        onOpenSettings={() =>
+          void message.info("Cài đặt cá nhân sẽ sớm có mặt.")
+        }
+      />
+      <MobileDashboardNavigation
+        activeSection={activeSection}
+        counts={planner.counts}
+        open={mobileNavigationOpen}
+        onClose={closeMobileNavigation}
+        onNavigate={navigate}
+      />
+
+      <main className="planner-main">
+        <DashboardTopbar
+          user={user}
+          search={search}
+          onSearchChange={setSearch}
+          onAdd={() => openCreate("event")}
+          onOpenMobileNavigation={() => setMobileNavigationOpen(true)}
+          onSignOut={() => void signOut()}
+        />
+
+        {planner.taskError || planner.eventError || planner.tagError ? (
+          <Alert
+            className="mb-4"
+            type="error"
+            showIcon
+            title="Không thể đồng bộ planner"
+            description={firebaseErrorMessage(planner.taskError ?? planner.eventError ?? planner.tagError, "Vui lòng thử lại.")}
+          />
+        ) : null}
+
+        {activeSection === "tags" ? (
+          <TagManagerModal userId={user.uid} open embedded defaultTags={defaultPlannerTags}
+            customTags={planner.customTags} onClose={() => navigate("planner")} />
+        ) : <>
+        <section className="planner-overview" aria-label="Tổng quan kế hoạch">
+          <div className="planner-overview-intro"><span className="planner-eyebrow">KHÔNG GIAN CỦA BẠN</span><h1>Ít bộn bề.<br /><span>Thêm thảnh thơi.</span></h1><p>Dành thời gian cho những điều quan trọng.</p></div>
+          <div className="planner-stats">
+            <button type="button" onClick={() => navigate("today")}><span className="stat-dot lavender" /><strong>{planner.counts.today.toString().padStart(2, "0")}</strong><span>Kế hoạch hôm nay</span></button>
+            <button type="button" onClick={() => navigate("tasks")}><span className="stat-dot peach" /><strong>{planner.counts.tasks.toString().padStart(2, "0")}</strong><span>Việc đang chờ</span></button>
+            <button type="button" onClick={() => navigate("completed")}><span className="stat-dot mint" /><strong>{planner.counts.completed.toString().padStart(2, "0")}</strong><span>Đã hoàn thành</span></button>
+          </div>
+          <span className="overview-orbit" aria-hidden="true">✳</span>
+        </section>
+        <div className="planner-content-grid">
+          <section className="planner-calendar-card">
+            <CalendarToolbar
+              visibleDate={visibleDate}
+              view={view}
+              filter={filter}
+              onChangeDate={setVisibleDate}
+              onChangeView={setView}
+              onChangeFilter={changeFilter}
+              onToday={() => {
+                setActiveSection("today");
+                goToToday();
+              }}
+            />
+
+            {planner.loading ? (
+              <div className="p-6">
+                <Skeleton active paragraph={{ rows: 10 }} />
+              </div>
+            ) : (
+              <PlannerCalendar
+                items={planner.visibleItems}
+                view={view}
+                selectedDate={selectedDate}
+                visibleDate={visibleDate}
+                onSelectDate={selectDate}
+                onVisibleDateChange={setVisibleDate}
+                onEditItem={openEdit}
+                onToggleTask={toggleTask}
+              />
+            )}
+          </section>
+
+          <PlannerSidePanel
+            selectedDate={selectedDate}
+            selectedItems={planner.selectedItems}
+            upcomingItems={planner.upcomingItems}
+            nextReminder={planner.nextReminder}
+            tags={planner.allTags}
+            tagError={planner.tagError}
+            onAdd={openCreate}
+            onEdit={openEdit}
+            onToggleTask={toggleTask}
+            onOpenTags={() => navigate("tags")}
+            onViewAgenda={() => setView("agenda")}
+          />
+        </div>
+        </>}
+      </main>
+      <MobileBottomNavigation activeSection={activeSection} onNavigate={navigate} />
+
+      <QuickAddDrawer
+        userId={user.uid}
+        open={drawer.open}
+        initialDate={selectedDate}
+        initialType={drawer.type}
+        item={drawer.item}
+        tags={planner.allTags}
+        onClose={closeDrawer}
+        onOpenTagManager={() => setTagManagerOpen(true)}
+      />
+      <TagManagerModal
+        userId={user.uid}
+        open={tagManagerOpen}
+        defaultTags={defaultPlannerTags}
+        customTags={planner.customTags}
+        onClose={() => setTagManagerOpen(false)}
+      />
+    </div>
+  );
+}
