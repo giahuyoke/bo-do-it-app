@@ -15,7 +15,10 @@
   },
   "auth": {
     "authorizedDomains": [
-      "localhost"
+      "bo-do-it.firebaseapp.com",
+      "bo-do-it.web.app",
+      "localhost",
+      "bo-do-it-app.vercel.app"
     ],
     "providers": {
       "googleSignIn": {
