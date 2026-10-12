@@ -31,7 +31,7 @@ export type DashboardSection =
   | "tags";
 
 export interface DashboardCounts {
-  /** Checklists that still have lines left to do. */
+  /** Lines left on the notes checklist. */
   notes: number;
   today: number;
   upcoming: number;

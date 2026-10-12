@@ -1,89 +1,117 @@
 "use client";
 
-import { CheckSquareOutlined } from "@ant-design/icons";
-import { App, Empty, Input, Skeleton } from "antd";
-import { useMemo, useState } from "react";
-import { NoteCard } from "@/components/notes/note-card";
-import { NoteEditor } from "@/components/notes/note-editor";
+import { CalendarOutlined, PlusOutlined } from "@ant-design/icons";
+import { App, Button, Checkbox, Empty, Input, Skeleton, Tooltip } from "antd";
+import { useMemo, useState, type ClipboardEvent } from "react";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
-import type { Note, NoteItem } from "@/lib/firebase/models";
+import type { NoteItem } from "@/lib/firebase/models";
 import {
-  createNote,
-  newNoteRef,
+  addChecklistItems,
+  newNoteItem,
   noteLimits,
-  removeNoteItem,
-  restoreNoteItem,
+  removeChecklistItem,
+  restoreChecklistItem,
+  updateChecklistItem,
 } from "@/lib/firebase/notes";
 
 interface NotesPageProps {
   userId: string;
-  notes: Note[];
+  items: NoteItem[];
   loading: boolean;
   error: Error | null;
   search: string;
-  onConvertItem: (note: Note, item: NoteItem) => void;
+  onConvertItem: (item: NoteItem) => void;
 }
 
-function matches(note: Note, term: string) {
-  return [note.title, ...note.items.map((item) => item.text)]
-    .join(" ")
-    .toLocaleLowerCase("vi")
-    .includes(term);
+/** Splits pasted text into lines, dropping bullets like "-", "•" or "[ ]". */
+function pastedLines(text: string) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\[\s?[xX]?\])\s*/, "").trim())
+    .filter(Boolean);
 }
 
 export function NotesPage({
   userId,
-  notes,
+  items,
   loading,
   error,
   search,
   onConvertItem,
 }: NotesPageProps) {
   const { message } = App.useApp();
-  const [draftTitle, setDraftTitle] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [hiddenItemIds, setHiddenItemIds] = useState<ReadonlySet<string>>(new Set());
+  const [draft, setDraft] = useState("");
+  // Optimistic state: transactions don't update the snapshot until they land.
+  const [pending, setPending] = useState<NoteItem[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(new Set());
+  const [edits, setEdits] = useState<Record<string, string>>({});
 
-  const { pinned, others } = useMemo(() => {
+  const visible = useMemo(() => {
+    const stored = new Set(items.map((item) => item.id));
+    const all = [
+      ...items,
+      ...pending.filter((item) => !stored.has(item.id)),
+    ].filter((item) => !hiddenIds.has(item.id));
     const term = search.trim().toLocaleLowerCase("vi");
-    const visible = term ? notes.filter((note) => matches(note, term)) : notes;
-    return {
-      pinned: visible.filter((note) => note.pinned),
-      others: visible.filter((note) => !note.pinned),
-    };
-  }, [notes, search]);
+    return term
+      ? all.filter((item) => item.text.toLocaleLowerCase("vi").includes(term))
+      : all;
+  }, [hiddenIds, items, pending, search]);
 
-  // Unmounts the editor (and flushes its draft) if the note is deleted elsewhere.
-  const editingNote = notes.find((note) => note.id === editingId);
+  const total = items.length + pending.filter((p) => !items.some((i) => i.id === p.id)).length;
+  const full = total >= noteLimits.items;
 
   const setHidden = (id: string, hidden: boolean) =>
-    setHiddenItemIds((current) => {
+    setHiddenIds((current) => {
       const next = new Set(current);
       if (hidden) next.add(id);
       else next.delete(id);
       return next;
     });
 
-  const create = async () => {
-    const title = draftTitle.trim();
-    if (!title) return;
-    const ref = newNoteRef(userId);
-    setDraftTitle("");
-    // Open on the id right away; the local snapshot shows the note instantly.
-    setEditingId(ref.id);
+  const add = async (texts: string[]) => {
+    const added = texts
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .slice(0, Math.max(noteLimits.items - total, 0))
+      .map((text) => newNoteItem(text));
+    if (!added.length) {
+      if (full) void message.warning(`Checklist tối đa ${noteLimits.items} mục.`);
+      return;
+    }
+    // Pending lines stay until the snapshot carries them (the list dedupes by
+    // id), so they never blink out between the commit and the snapshot.
+    setPending((current) => [
+      ...current.filter((item) => !items.some((stored) => stored.id === item.id)),
+      ...added,
+    ]);
     try {
-      await createNote(userId, title, [], ref);
-    } catch (createError) {
-      setEditingId(null);
-      setDraftTitle(title);
-      void message.error(firebaseErrorMessage(createError, "Không thể tạo ghi chú."));
+      await addChecklistItems(userId, added);
+    } catch (addError) {
+      const ids = new Set(added.map((item) => item.id));
+      setPending((current) => current.filter((item) => !ids.has(item.id)));
+      void message.error(firebaseErrorMessage(addError, "Không thể thêm vào checklist."));
     }
   };
 
-  const tickOff = async (note: Note, item: NoteItem) => {
+  const submitDraft = () => {
+    const text = draft;
+    setDraft("");
+    void add([text]);
+  };
+
+  const onDraftPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const lines = pastedLines(event.clipboardData.getData("text"));
+    if (lines.length < 2) return;
+    event.preventDefault();
+    setDraft("");
+    void add(lines);
+  };
+
+  const tickOff = async (item: NoteItem) => {
     setHidden(item.id, true);
     try {
-      const removed = await removeNoteItem(userId, note.id, item.id);
+      const removed = await removeChecklistItem(userId, item.id);
       if (!removed) return;
       const key = `note-tick-${item.id}`;
       void message.open({
@@ -92,13 +120,13 @@ export function NotesPage({
         duration: 5,
         content: (
           <span className="note-undo-message">
-            Đã xong “{item.text}”
+            Đã xong “{removed.item.text}”
             <button
               type="button"
               onClick={() => {
                 message.destroy(key);
                 setHidden(item.id, false);
-                void restoreNoteItem(userId, note.id, removed.item, removed.index).catch(
+                void restoreChecklistItem(userId, removed.item, removed.index).catch(
                   (undoError: unknown) =>
                     message.error(firebaseErrorMessage(undoError, "Không thể hoàn tác.")),
                 );
@@ -115,82 +143,119 @@ export function NotesPage({
     }
   };
 
-  const renderGrid = (list: Note[]) => (
-    <div className="notes-grid">
-      {list.map((note) => (
-        <NoteCard
-          key={note.id}
-          note={note}
-          hiddenItemIds={hiddenItemIds}
-          onOpen={() => setEditingId(note.id)}
-          onTick={(item) => void tickOff(note, item)}
-        />
-      ))}
-    </div>
-  );
+  const commitEdit = async (item: NoteItem) => {
+    const text = edits[item.id];
+    if (text === undefined) return;
+    const clear = () =>
+      setEdits((current) => {
+        const next = { ...current };
+        delete next[item.id];
+        return next;
+      });
+    // Clearing a line's text is treated as ticking it off.
+    if (!text.trim()) {
+      clear();
+      void tickOff(item);
+      return;
+    }
+    if (text.trim() === item.text) {
+      clear();
+      return;
+    }
+    try {
+      await updateChecklistItem(userId, item.id, text);
+    } catch (editError) {
+      void message.error(firebaseErrorMessage(editError, "Không thể lưu thay đổi."));
+    } finally {
+      clear();
+    }
+  };
 
   return (
     <section className="notes-page" aria-label="Ghi chú">
       <div className="notes-heading">
-        <div>
-          <span className="planner-eyebrow">GHI CHÚ</span>
-          <h1>Checklist của bạn</h1>
-          <p>Tick một mục là xong và gạch khỏi danh sách.</p>
-        </div>
+        <span className="planner-eyebrow">GHI CHÚ</span>
+        <h1>Checklist của bạn</h1>
+        <p>Enter để thêm · tick là xong và gạch khỏi danh sách.</p>
       </div>
 
-      <Input
-        size="large"
-        className="notes-quick-add"
-        prefix={<CheckSquareOutlined className="text-slate-400" />}
-        placeholder="Tạo checklist mới, ví dụ: Đi chợ cuối tuần"
-        maxLength={noteLimits.title}
-        value={draftTitle}
-        onChange={(event) => setDraftTitle(event.target.value)}
-        onPressEnter={(event) => {
-          if (!event.nativeEvent.isComposing) void create();
-        }}
-        aria-label="Tiêu đề checklist mới, nhấn Enter để tạo"
-      />
-
-      {error ? (
-        <p className="notes-error">{firebaseErrorMessage(error, "Không thể tải ghi chú.")}</p>
-      ) : null}
-
-      {loading ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : !pinned.length && !others.length ? (
-        <Empty
-          className="notes-empty"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={search.trim() ? "Không có ghi chú phù hợp" : "Chưa có checklist nào"}
+      <div className="notes-sheet">
+        <Input
+          size="large"
+          variant="borderless"
+          className="notes-quick-add"
+          prefix={<PlusOutlined />}
+          placeholder={full ? `Đã đủ ${noteLimits.items} mục` : "Thêm việc cần nhớ…"}
+          disabled={full}
+          maxLength={noteLimits.itemText}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onPaste={onDraftPaste}
+          onPressEnter={(event) => {
+            // Vietnamese IMEs confirm a syllable with Enter; don't submit then.
+            if (!event.nativeEvent.isComposing) submitDraft();
+          }}
+          aria-label="Thêm mục vào checklist, nhấn Enter để thêm"
         />
-      ) : (
-        <>
-          {pinned.length ? (
-            <>
-              <h2 className="notes-group-label">Đã ghim</h2>
-              {renderGrid(pinned)}
-            </>
-          ) : null}
-          {others.length ? (
-            <>
-              {pinned.length ? <h2 className="notes-group-label">Khác</h2> : null}
-              {renderGrid(others)}
-            </>
-          ) : null}
-        </>
-      )}
 
-      {editingNote ? (
-        <NoteEditor
-          key={editingNote.id}
-          userId={userId}
-          note={editingNote}
-          onClose={() => setEditingId(null)}
-          onConvertItem={(item) => onConvertItem(editingNote, item)}
-        />
-      ) : null}
+        {error ? (
+          <p className="notes-error">{firebaseErrorMessage(error, "Không thể tải checklist.")}</p>
+        ) : null}
+
+        {loading ? (
+          <div className="p-4">
+            <Skeleton active paragraph={{ rows: 5 }} />
+          </div>
+        ) : visible.length ? (
+          <ul className="notes-list">
+            {visible.map((item) => {
+              const isPending = !items.some((stored) => stored.id === item.id);
+              return (
+                <li key={item.id} className={isPending ? "is-pending" : ""}>
+                  <Checkbox
+                    checked={false}
+                    disabled={isPending}
+                    aria-label={`Đánh dấu xong ${item.text}`}
+                    onChange={() => void tickOff(item)}
+                  />
+                  <Input
+                    variant="borderless"
+                    maxLength={noteLimits.itemText}
+                    readOnly={isPending}
+                    value={edits[item.id] ?? item.text}
+                    onChange={(event) =>
+                      setEdits((current) => ({ ...current, [item.id]: event.target.value }))
+                    }
+                    onBlur={() => void commitEdit(item)}
+                    onPressEnter={(event) => {
+                      if (!event.nativeEvent.isComposing) event.currentTarget.blur();
+                    }}
+                    aria-label={`Sửa ${item.text}`}
+                  />
+                  {!isPending ? (
+                    <Tooltip title="Chuyển thành nhiệm vụ">
+                      <Button
+                        type="text"
+                        size="small"
+                        className="note-item-convert"
+                        icon={<CalendarOutlined />}
+                        aria-label={`Chuyển “${item.text}” thành nhiệm vụ`}
+                        onClick={() => onConvertItem(item)}
+                      />
+                    </Tooltip>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <Empty
+            className="notes-empty"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={search.trim() ? "Không có mục phù hợp" : "Chưa có gì cần nhớ"}
+          />
+        )}
+      </div>
     </section>
   );
 }

@@ -27,9 +27,9 @@ import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
 import { NotesPage } from "@/components/notes/notes-page";
 import { usePlannerDashboard } from "@/hooks/use-planner-dashboard";
-import { useRealtimeNotes } from "@/hooks/use-realtime-notes";
-import type { Note, NoteItem } from "@/lib/firebase/models";
-import { removeNoteItem } from "@/lib/firebase/notes";
+import { useRealtimeChecklist } from "@/hooks/use-realtime-notes";
+import type { NoteItem } from "@/lib/firebase/models";
+import { removeChecklistItem } from "@/lib/firebase/notes";
 import type { PlannerItem } from "@/lib/planner";
 import { setTaskCompleted } from "@/lib/firebase/tasks";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
@@ -62,13 +62,13 @@ export function Dashboard() {
     selectedDate,
     section: activeSection,
   });
-  const notesState = useRealtimeNotes(user?.uid ?? "");
+  const checklist = useRealtimeChecklist(user?.uid ?? "");
 
   if (!user) return null;
 
   const counts = {
     ...planner.counts,
-    notes: notesState.notes.filter((note) => note.items.length).length,
+    notes: checklist.items.length,
   };
 
   const closeMobileNavigation = () => setMobileNavigationOpen(false);
@@ -123,14 +123,14 @@ export function Dashboard() {
 
   // A checklist line becomes a task for the selected day; once that task is
   // saved, the line is ticked off the checklist.
-  const convertNoteItem = (note: Note, item: NoteItem) => {
+  const convertNoteItem = (item: NoteItem) => {
     setDrawer({
       open: true,
       type: "task",
       item: null,
       initialTitle: item.text,
       onCreated: () =>
-        void removeNoteItem(user.uid, note.id, item.id).catch((error: unknown) =>
+        void removeChecklistItem(user.uid, item.id).catch((error: unknown) =>
           message.error(firebaseErrorMessage(error, "Không thể cập nhật checklist.")),
         ),
     });
@@ -205,9 +205,9 @@ export function Dashboard() {
         {activeSection === "notes" ? (
           <NotesPage
             userId={user.uid}
-            notes={notesState.notes}
-            loading={notesState.loading}
-            error={notesState.error}
+            items={checklist.items}
+            loading={checklist.loading}
+            error={checklist.error}
             search={search}
             onConvertItem={convertNoteItem}
           />

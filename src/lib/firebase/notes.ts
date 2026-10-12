@@ -1,28 +1,24 @@
 import {
-  collection,
-  deleteDoc,
   doc,
-  limit,
   onSnapshot,
-  orderBy,
-  query,
   runTransaction,
   serverTimestamp,
-  setDoc,
-  updateDoc,
-  type DocumentReference,
+  type Transaction,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
-import { documentData, readDate } from "@/lib/firebase/document-data";
-import type { Note, NoteItem, NotePatch } from "@/lib/firebase/models";
+import type { NoteItem } from "@/lib/firebase/models";
 
 // Mirrors firestore.rules. The rules can only bound the item count, so the
-// per-item limits below are enforced here.
-export const noteLimits = { title: 200, items: 100, itemText: 300 } as const;
+// per-item text limit below is enforced here.
+export const noteLimits = { items: 100, itemText: 300 } as const;
 
-function notesCollection(userId: string) {
-  return collection(getFirestoreDb(), "users", userId, "notes");
+/**
+ * The whole "Ghi chú" checklist lives in one document. Keeping the lines in a
+ * single list makes ticking (deleting) and undo position-exact and cheap.
+ */
+function checklistRef(userId: string) {
+  return doc(getFirestoreDb(), "users", userId, "notes", "main");
 }
 
 function readItems(value: unknown): NoteItem[] {
@@ -32,18 +28,6 @@ function readItems(value: unknown): NoteItem[] {
       ? [{ id: entry.id, text: entry.text }]
       : [],
   );
-}
-
-function noteFromDocument(data: ReturnType<typeof documentData>): Note {
-  return {
-    id: data.id,
-    title: String(data.title ?? ""),
-    color: String(data.color ?? ""),
-    pinned: data.pinned === true,
-    items: readItems(data.items),
-    createdAt: readDate(data.createdAt),
-    updatedAt: readDate(data.updatedAt),
-  };
 }
 
 export function newNoteItem(text = ""): NoteItem {
@@ -58,107 +42,93 @@ function cleanItems(items: NoteItem[]) {
     .slice(0, noteLimits.items);
 }
 
-function notePatchPayload(patch: NotePatch) {
-  return {
-    ...(patch.title !== undefined && { title: patch.title.trim().slice(0, noteLimits.title) }),
-    ...(patch.color !== undefined && { color: patch.color }),
-    ...(patch.pinned !== undefined && { pinned: patch.pinned }),
-    ...(patch.items !== undefined && { items: cleanItems(patch.items) }),
-  };
-}
-
-/** A reference for a note not saved yet, so the UI can open it right away. */
-export function newNoteRef(userId: string) {
-  return doc(notesCollection(userId));
-}
-
-export async function createNote(
+/**
+ * Reads the stored list, applies `update` and writes it back in one
+ * transaction, so concurrent edits from other devices are never lost. Creates
+ * the document on first use (title/color/pinned are fixed by the rules' shape).
+ */
+function updateChecklist<T>(
   userId: string,
-  title: string,
-  items: NoteItem[] = [],
-  ref: DocumentReference = newNoteRef(userId),
+  update: (items: NoteItem[]) => { items: NoteItem[]; result: T } | null,
 ) {
-  await setDoc(ref, {
-    title: title.trim().slice(0, noteLimits.title),
-    color: "",
-    pinned: false,
-    items: cleanItems(items),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref;
-}
-
-export function updateNote(userId: string, noteId: string, patch: NotePatch) {
-  return updateDoc(doc(notesCollection(userId), noteId), {
-    ...notePatchPayload(patch),
-    updatedAt: serverTimestamp(),
+  const ref = checklistRef(userId);
+  return runTransaction(getFirestoreDb(), async (transaction: Transaction) => {
+    const snapshot = await transaction.get(ref);
+    const current = snapshot.exists() ? readItems(snapshot.data().items) : [];
+    const next = update(current);
+    if (!next) return null;
+    const items = cleanItems(next.items);
+    if (snapshot.exists()) {
+      transaction.update(ref, { items, updatedAt: serverTimestamp() });
+    } else {
+      transaction.set(ref, {
+        title: "",
+        color: "",
+        pinned: false,
+        items,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    return next.result;
   });
 }
 
 /**
- * Ticks an item off by deleting it. Runs as a transaction against the stored
- * list, so a tick never overwrites edits made elsewhere in the meantime.
- * Resolves with the item and its position, for undo.
+ * Appends lines in entry order. Ids are made by the caller (`newNoteItem`) so
+ * the UI can show the lines before the transaction lands. Resolves with how
+ * many fit under the cap.
  */
-export function removeNoteItem(userId: string, noteId: string, itemId: string) {
-  const noteRef = doc(notesCollection(userId), noteId);
-  return runTransaction(getFirestoreDb(), async (transaction) => {
-    const snapshot = await transaction.get(noteRef);
-    if (!snapshot.exists()) throw new Error("Ghi chú này không còn tồn tại.");
-    const items = readItems(snapshot.data().items);
+export function addChecklistItems(userId: string, newItems: NoteItem[]) {
+  return updateChecklist(userId, (items) => {
+    const room = Math.max(noteLimits.items - items.length, 0);
+    const added = cleanItems(newItems).slice(0, room);
+    if (!added.length) return null;
+    return { items: [...items, ...added], result: added.length };
+  });
+}
+
+export function updateChecklistItem(userId: string, itemId: string, text: string) {
+  return updateChecklist(userId, (items) =>
+    items.some((item) => item.id === itemId)
+      ? {
+          items: items.map((item) => (item.id === itemId ? { ...item, text } : item)),
+          result: true,
+        }
+      : null,
+  );
+}
+
+/** Ticks a line off by deleting it. Resolves with it and its position, for undo. */
+export function removeChecklistItem(userId: string, itemId: string) {
+  return updateChecklist(userId, (items) => {
     const index = items.findIndex((item) => item.id === itemId);
     if (index === -1) return null;
-    transaction.update(noteRef, {
+    return {
       items: items.filter((item) => item.id !== itemId),
-      updatedAt: serverTimestamp(),
-    });
-    return { item: items[index], index };
+      result: { item: items[index], index },
+    };
   });
 }
 
-/** Undo for `removeNoteItem`: puts the item back near where it was. */
-export function restoreNoteItem(
-  userId: string,
-  noteId: string,
-  item: NoteItem,
-  index: number,
-) {
-  const noteRef = doc(notesCollection(userId), noteId);
-  return runTransaction(getFirestoreDb(), async (transaction) => {
-    const snapshot = await transaction.get(noteRef);
-    if (!snapshot.exists()) throw new Error("Ghi chú này không còn tồn tại.");
-    const items = readItems(snapshot.data().items);
-    if (items.some((entry) => entry.id === item.id)) return;
+/** Undo for `removeChecklistItem`: puts the line back where it was. */
+export function restoreChecklistItem(userId: string, item: NoteItem, index: number) {
+  return updateChecklist(userId, (items) => {
+    if (items.some((entry) => entry.id === item.id)) return null;
     const next = [...items];
     next.splice(Math.min(index, next.length), 0, item);
-    transaction.update(noteRef, {
-      items: cleanItems(next),
-      updatedAt: serverTimestamp(),
-    });
+    return { items: next, result: true };
   });
 }
 
-export function deleteNote(userId: string, noteId: string) {
-  return deleteDoc(doc(notesCollection(userId), noteId));
-}
-
-export function subscribeToNotes(
+export function subscribeToChecklist(
   userId: string,
-  onData: (notes: Note[]) => void,
+  onData: (items: NoteItem[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
-  const notesQuery = query(
-    notesCollection(userId),
-    orderBy("createdAt", "desc"),
-    limit(200),
-  );
-
   return onSnapshot(
-    notesQuery,
-    (snapshot) => {
-      onData(snapshot.docs.map((item) => noteFromDocument(documentData(item))));
-    },
+    checklistRef(userId),
+    (snapshot) => onData(snapshot.exists() ? readItems(snapshot.data().items) : []),
     onError,
   );
 }

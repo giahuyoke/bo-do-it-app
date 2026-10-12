@@ -24,12 +24,11 @@ import { createTask, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
 import { createEvent, updateEvent } from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
 import {
-  createNote,
-  deleteNote,
+  addChecklistItems,
   newNoteItem,
-  removeNoteItem,
-  restoreNoteItem,
-  updateNote,
+  removeChecklistItem,
+  restoreChecklistItem,
+  updateChecklistItem,
 } from "@/lib/firebase/notes";
 
 let testEnvironment: RulesTestEnvironment;
@@ -237,33 +236,31 @@ describe("Firestore ownership rules", () => {
     );
   });
 
-  test("checklist: SDK payloads create, tick off, undo and delete a note", async () => {
+  test("checklist: SDK payloads add, edit, tick off and undo lines", async () => {
+    const main = doc(sdkDb, "users/alice/notes/main");
     const milk = newNoteItem("Sữa tươi");
-    const note = await createNote("alice", "  Đi chợ  ", [milk, newNoteItem("Trứng"), newNoteItem("   ")]);
-    expect((await getDoc(note)).data()).toMatchObject({ title: "Đi chợ", color: "", pinned: false });
-    expect((await getDoc(note)).data()?.items).toHaveLength(2);
+    // The first add creates the document; blank lines are dropped.
+    expect(await addChecklistItems("alice", [milk, newNoteItem("Trứng"), newNoteItem("   ")])).toBe(2);
+    expect((await getDoc(main)).data()).toMatchObject({ title: "", color: "", pinned: false });
 
-    await updateNote("alice", note.id, { pinned: true, color: "#e77991" });
-    const removed = await removeNoteItem("alice", note.id, milk.id);
-    expect(removed).toEqual({ item: milk, index: 0 });
-    expect((await getDoc(note)).data()?.items.map((item: { text: string }) => item.text)).toEqual(["Trứng"]);
+    await updateChecklistItem("alice", milk.id, "Sữa không đường");
+    const removed = await removeChecklistItem("alice", milk.id);
+    expect(removed).toEqual({ item: { id: milk.id, text: "Sữa không đường" }, index: 0 });
+    expect((await getDoc(main)).data()?.items.map((item: { text: string }) => item.text)).toEqual(["Trứng"]);
 
-    await restoreNoteItem("alice", note.id, milk, 0);
-    expect((await getDoc(note)).data()?.items[0]).toEqual(milk);
-    await deleteNote("alice", note.id);
+    await restoreChecklistItem("alice", removed!.item, removed!.index);
+    expect((await getDoc(main)).data()?.items[0]).toEqual(removed!.item);
   });
 
   test("checklist: rejects foreign owners, extra fields and oversized lists", async () => {
-    const note = await createNote("alice", "Riêng tư");
+    await addChecklistItems("alice", [newNoteItem("Riêng tư")]);
     const bob = testEnvironment.authenticatedContext("bob").firestore();
-    await assertFails(getDoc(doc(bob, "users/alice/notes", note.id)));
-    await assertFails(updateDoc(doc(bob, "users/alice/notes", note.id), { title: "Bị sửa", updatedAt: serverTimestamp() }));
-    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes", note.id), { extra: true, updatedAt: serverTimestamp() }));
-    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes", note.id), {
+    await assertFails(getDoc(doc(bob, "users/alice/notes/main")));
+    await assertFails(updateDoc(doc(bob, "users/alice/notes/main"), { items: [], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes/main"), { extra: true, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes/main"), {
       items: Array.from({ length: 101 }, (_, index) => ({ id: String(index), text: "x" })),
       updatedAt: serverTimestamp(),
     }));
-    await assertSucceeds(getDocs(query(collection(sdkDb, "users/alice/notes"), limit(200))));
-    await assertFails(getDocs(query(collection(sdkDb, "users/alice/notes"), limit(201))));
   });
 });
