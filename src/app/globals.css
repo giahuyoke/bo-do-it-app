@@ -388,9 +388,16 @@ select {
   font-weight: 600;
   white-space: nowrap;
 }
+/* A pill, not bare digits, so it never reads as the lunar date beside it. */
 .planner-day-count {
-  color: #75694f;
-  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 .planner-cell-items {
   display: grid;
@@ -1881,12 +1888,19 @@ a:focus-visible {
     padding: 12px;
   }
 }
+/* List the app's own animated elements only. A wildcard override also reaches
+   Ant Design popups, whose placement is measured mid-animation, and throws
+   them off-screen. Ant Design's motion is turned off via the `motion` token
+   in providers instead. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+  .planner-side-nav button,
+  .planner-settings-link,
+  .planner-date-cell,
+  .planner-agenda-item,
+  .day-item,
+  .tag-color-palette button,
+  .tag-color-custom,
+  .planner-stats button {
+    transition: none;
   }
 }

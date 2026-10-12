@@ -3,7 +3,7 @@
 import { StyleProvider } from "@ant-design/cssinjs";
 import { App, ConfigProvider, type ThemeConfig } from "antd";
 import viVN from "antd/locale/vi_VN";
-import type { ReactNode } from "react";
+import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
 
 const theme: ThemeConfig = {
@@ -31,10 +31,32 @@ const theme: ThemeConfig = {
   },
 };
 
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia(reducedMotionQuery);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(reducedMotionQuery).matches,
+    () => false,
+  );
+}
+
 export function Providers({ children }: { children: ReactNode }) {
+  const reducedMotion = usePrefersReducedMotion();
+  const themeConfig = useMemo<ThemeConfig>(
+    () => ({ ...theme, token: { ...theme.token, motion: !reducedMotion } }),
+    [reducedMotion],
+  );
+
   return (
     <StyleProvider layer>
-      <ConfigProvider locale={viVN} theme={theme}>
+      <ConfigProvider locale={viVN} theme={themeConfig}>
         <App>
           <AuthProvider>{children}</AuthProvider>
         </App>
