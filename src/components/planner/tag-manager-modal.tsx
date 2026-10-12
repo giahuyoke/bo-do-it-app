@@ -4,7 +4,6 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   App,
   Button,
-  ColorPicker,
   Form,
   Input,
   Empty,
@@ -17,6 +16,7 @@ import { useState } from "react";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { createTag, deleteTag, updateTag } from "@/lib/firebase/tags";
+import { NativeColorField } from "@/components/planner/form/native-color-field";
 
 const { Text } = Typography;
 
@@ -28,7 +28,6 @@ interface TagFormValues {
 interface TagManagerModalProps {
   userId: string;
   open: boolean;
-  defaultTags: PlannerTag[];
   customTags: PlannerTag[];
   onClose: () => void;
   embedded?: boolean;
@@ -37,7 +36,6 @@ interface TagManagerModalProps {
 export function TagManagerModal({
   userId,
   open,
-  defaultTags,
   customTags,
   onClose,
   embedded = false,
@@ -46,7 +44,6 @@ export function TagManagerModal({
   const [form] = Form.useForm<TagFormValues>();
   const [editingTag, setEditingTag] = useState<PlannerTag | null>(null);
   const [saving, setSaving] = useState(false);
-  const color = Form.useWatch("color", form) ?? "#78c6a3";
 
   const closeModal = () => {
     setEditingTag(null);
@@ -128,16 +125,6 @@ export function TagManagerModal({
               </li>
             ))}
           </ul>
-          <div className="mt-5">
-            <Text type="secondary" className="mb-2 block text-xs! uppercase tracking-wider">
-              Tag gợi ý
-            </Text>
-            <Space size={[6, 8]} wrap>
-              {defaultTags.map((tag) => (
-                <span key={tag.id} className="tag-badge" style={{ background: `${tag.color}25` }}><i style={{ background: tag.color }} />{tag.name}</span>
-              ))}
-            </Space>
-          </div>
         </div>
 
         <Form
@@ -162,13 +149,8 @@ export function TagManagerModal({
           >
             <Input placeholder="Ví dụ: Thi cử" />
           </Form.Item>
-          <Form.Item name="color" label="Màu" rules={[{ required: true }]} getValueFromEvent={(value) => value.toHexString()}>
-            <ColorPicker
-              value={color}
-              format="hex"
-              disabledAlpha
-              showText
-            />
+          <Form.Item name="color" label="Màu" rules={[{ required: true }]}>
+            <NativeColorField />
           </Form.Item>
           <Space className="w-full justify-end">
             {editingTag ? (
@@ -198,7 +180,7 @@ export function TagManagerModal({
     <section className="tag-manager-page">
       <div className="tag-manager-heading">
         <span className="planner-eyebrow">MỌI THỨ ĐÚNG CHỖ</span>
-        <h1>Quản lý tag<span className="heading-sparkle">✳</span></h1>
+        <h1>Quản lý tag<span className="heading-sparkle" aria-hidden="true" /></h1>
         <p>Một chút màu sắc. Một ngày ngăn nắp hơn.<br />Tạo, đổi tên và chọn màu để phân loại kế hoạch theo cách của bạn.</p>
       </div>
       {content}

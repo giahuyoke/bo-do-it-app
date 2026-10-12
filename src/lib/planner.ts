@@ -1,13 +1,4 @@
-import type { CalendarEvent, PlannerTag, Task } from "@/lib/firebase/models";
-
-export const defaultPlannerTags: PlannerTag[] = [
-  { id: "default-study", name: "Học tập", color: "#8fb8ff", createdAt: null, updatedAt: null },
-  { id: "default-work", name: "Công việc", color: "#b9a7f8", createdAt: null, updatedAt: null },
-  { id: "default-personal", name: "Cá nhân", color: "#f4b6c2", createdAt: null, updatedAt: null },
-  { id: "default-important", name: "Quan trọng", color: "#ff9f9f", createdAt: null, updatedAt: null },
-  { id: "default-deadline", name: "Deadline", color: "#f6c76f", createdAt: null, updatedAt: null },
-  { id: "default-meeting", name: "Cuộc hẹn", color: "#78c6a3", createdAt: null, updatedAt: null },
-];
+import type { CalendarEvent, Task } from "@/lib/firebase/models";
 
 export type PlannerItem =
   | { kind: "task"; date: Date | null; data: Task }

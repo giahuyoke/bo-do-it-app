@@ -1,7 +1,7 @@
 "use client";
 
 import { PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Skeleton } from "antd";
+import { Empty, Skeleton } from "antd";
 import type { Dayjs } from "dayjs";
 import { DayItem } from "@/components/dashboard/day-item";
 import type { PlannerItem } from "@/lib/planner";
@@ -35,7 +35,10 @@ export function TodayPanel({ items, today, search, loading, onAdd, onEdit, onTog
           <h1 id="today-title">Hôm nay</h1>
           <p>Từng việc nhỏ, một ngày trọn vẹn.</p>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>Thêm công việc</Button>
+        <button type="button" className="today-add-button" onClick={onAdd}>
+          <PlusOutlined aria-hidden="true" />
+          <span>Thêm công việc</span>
+        </button>
       </header>
       {loading ? <div className="today-body"><Skeleton active paragraph={{ rows: 5 }} /></div> : (
         <div className="today-body">

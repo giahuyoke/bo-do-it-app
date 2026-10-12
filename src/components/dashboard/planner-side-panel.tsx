@@ -74,6 +74,8 @@ export function PlannerSidePanel({
           </div>
           <Dropdown
             trigger={["click"]}
+            placement="bottomRight"
+            getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
             menu={{
               items: [
                 {
@@ -92,12 +94,24 @@ export function PlannerSidePanel({
             }}
           >
             <Button
+              className="planner-day-add-trigger"
               type="primary"
               shape="circle"
               icon={<PlusOutlined />}
               aria-label="Thêm kế hoạch"
             />
           </Dropdown>
+        </div>
+
+        <div className="planner-day-add-actions" aria-label="Thêm kế hoạch cho ngày đã chọn">
+          <button type="button" onClick={() => onAdd("task")}>
+            <CheckSquareOutlined aria-hidden="true" />
+            <span>Thêm nhiệm vụ</span>
+          </button>
+          <button type="button" onClick={() => onAdd("event")}>
+            <CalendarOutlined aria-hidden="true" />
+            <span>Thêm lịch trình</span>
+          </button>
         </div>
 
         <div className="mt-4 space-y-2">

@@ -1,10 +1,11 @@
 "use client";
 
-import { App, ColorPicker, Form, Input, Modal } from "antd";
+import { App, Form, Input, Modal } from "antd";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { useEffect, useState } from "react";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { createTag, updateTag } from "@/lib/firebase/tags";
+import { NativeColorField } from "@/components/planner/form/native-color-field";
 
 interface QuickTagEditorProps {
   userId: string;
@@ -29,7 +30,6 @@ export function QuickTagEditor({
   const { message } = App.useApp();
   const [form] = Form.useForm<TagFormValues>();
   const [saving, setSaving] = useState(false);
-  const color = Form.useWatch("color", form) ?? "#78c6a3";
 
   useEffect(() => {
     if (!open) return;
@@ -86,13 +86,8 @@ export function QuickTagEditor({
         >
           <Input autoFocus placeholder="Ví dụ: Thi cử" />
         </Form.Item>
-        <Form.Item name="color" label="Màu" rules={[{ required: true }]} getValueFromEvent={(value) => value.toHexString()}>
-          <ColorPicker
-            value={color}
-            format="hex"
-            disabledAlpha
-            showText
-          />
+        <Form.Item name="color" label="Màu" rules={[{ required: true }]}>
+          <NativeColorField />
         </Form.Item>
       </Form>
     </Modal>

@@ -29,8 +29,7 @@ export function PlannerDetailsFields({
   const [quickEditorOpen, setQuickEditorOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<PlannerTag | null>(null);
   const selectedTag = tags.find((tag) => tag.id === selectedTagId) ?? null;
-  const canEditSelectedTag =
-    selectedTag !== null && !selectedTag.id.startsWith("default-");
+  const canEditSelectedTag = selectedTag !== null;
 
   const openQuickEditor = (tag: PlannerTag | null) => {
     setEditingTag(tag);
@@ -43,6 +42,9 @@ export function PlannerDetailsFields({
         <Form.Item name="reminderMinutes" label="Nhắc hẹn">
           <Select
             suffixIcon={<BellOutlined />}
+            virtual={false}
+            popupMatchSelectWidth
+            getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
             options={reminderOptions}
           />
         </Form.Item>
@@ -52,8 +54,12 @@ export function PlannerDetailsFields({
               <Select
                 allowClear
                 className="w-full"
+                popupClassName="planner-tag-select-popup"
                 placeholder="Chọn tag"
                 suffixIcon={<TagOutlined />}
+                virtual={false}
+                popupMatchSelectWidth={240}
+                getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
                 options={tags.map((tag) => ({
                   value: tag.id,
                   label: (

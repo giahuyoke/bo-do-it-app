@@ -177,6 +177,6 @@ export function formatLunarDate(date: Date, includeMonth = false) {
   const lunar = solarToVietnameseLunar(date);
   const monthSuffix = lunar.leap ? " nhuận" : "";
   return includeMonth || lunar.day === 1
-    ? `${lunar.day}/${lunar.month}${monthSuffix} ÂL`
-    : `${lunar.day} ÂL`;
+    ? `${lunar.day}/${lunar.month}${monthSuffix}`
+    : `${lunar.day}`;
 }

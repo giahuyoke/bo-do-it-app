@@ -26,7 +26,7 @@ import {
 import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
 import { usePlannerDashboard } from "@/hooks/use-planner-dashboard";
-import { defaultPlannerTags, type PlannerItem } from "@/lib/planner";
+import type { PlannerItem } from "@/lib/planner";
 import { setTaskCompleted } from "@/lib/firebase/tasks";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 
@@ -174,7 +174,7 @@ export function Dashboard() {
         ) : null}
 
         {activeSection === "tags" ? (
-          <TagManagerModal userId={user.uid} open embedded defaultTags={defaultPlannerTags}
+          <TagManagerModal userId={user.uid} open embedded
             customTags={planner.customTags} onClose={() => navigate("planner")} />
         ) : activeSection === "today" ? (
           <TodayPanel items={planner.allItems} today={dayjs()} search={search} loading={planner.loading}
@@ -185,9 +185,9 @@ export function Dashboard() {
           <div className="planner-stats">
             <button type="button" onClick={() => navigate("today")}><span className="stat-dot lavender" /><strong>{planner.counts.today.toString().padStart(2, "0")}</strong><span>Kế hoạch hôm nay</span></button>
             <button type="button" onClick={() => navigate("tasks")}><span className="stat-dot peach" /><strong>{planner.counts.tasks.toString().padStart(2, "0")}</strong><span>Việc đang chờ</span></button>
-            <button type="button" onClick={() => navigate("completed")}><span className="stat-dot mint" /><strong>{planner.counts.completed.toString().padStart(2, "0")}</strong><span>Đã hoàn thành</span></button>
+            <button className="planner-stat-completed" type="button" onClick={() => navigate("completed")}><span className="stat-dot mint" /><strong>{planner.counts.completed.toString().padStart(2, "0")}</strong><span>Đã hoàn thành</span></button>
           </div>
-          <span className="overview-orbit" aria-hidden="true">✳</span>
+          <span className="overview-orbit" aria-hidden="true" />
         </section>
         <div className="planner-content-grid">
           <section className="planner-calendar-card">
@@ -252,7 +252,6 @@ export function Dashboard() {
       <TagManagerModal
         userId={user.uid}
         open={tagManagerOpen}
-        defaultTags={defaultPlannerTags}
         customTags={planner.customTags}
         onClose={() => setTagManagerOpen(false)}
       />

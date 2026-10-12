@@ -7,11 +7,7 @@ import type { DashboardSection } from "@/components/dashboard/dashboard-sidebar"
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { useRealtimeTags } from "@/hooks/use-realtime-tags";
 import { useRealtimeTasks } from "@/hooks/use-realtime-tasks";
-import {
-  defaultPlannerTags,
-  plannerItemDate,
-  type PlannerItem,
-} from "@/lib/planner";
+import { plannerItemDate, type PlannerItem } from "@/lib/planner";
 
 interface UsePlannerDashboardOptions {
   userId: string;
@@ -32,10 +28,7 @@ export function usePlannerDashboard({
   const eventsState = useRealtimeEvents(userId);
   const tagsState = useRealtimeTags(userId);
 
-  const allTags = useMemo(
-    () => [...defaultPlannerTags, ...tagsState.tags],
-    [tagsState.tags],
-  );
+  const allTags = tagsState.tags;
 
   const allItems = useMemo<PlannerItem[]>(
     () => [

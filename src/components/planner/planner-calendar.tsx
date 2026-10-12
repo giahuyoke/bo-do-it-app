@@ -278,10 +278,6 @@ export function PlannerCalendar({
             <span className="planner-more">+{dayItems.length - 3} mục khác</span>
           ) : null}
         </div>
-        <div className="planner-mobile-dots" aria-hidden="true">
-          {dayItems.slice(0, 3).map((item) => <i key={`${item.kind}-${item.data.id}`} style={{ background: plannerItemColor(item) }} />)}
-          {dayItems.length > 3 ? <span>+</span> : null}
-        </div>
       </div>
     );
   };
