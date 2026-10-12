@@ -6,6 +6,7 @@ import {
   CheckSquareOutlined,
   ClockCircleOutlined,
   DownOutlined,
+  FormOutlined,
   ForwardOutlined,
   SettingOutlined,
   TagsOutlined,
@@ -22,6 +23,7 @@ import {
 
 export type DashboardSection =
   | "planner"
+  | "notes"
   | "today"
   | "upcoming"
   | "tasks"
@@ -29,6 +31,8 @@ export type DashboardSection =
   | "tags";
 
 export interface DashboardCounts {
+  /** Checklists that still have lines left to do. */
+  notes: number;
   today: number;
   upcoming: number;
   tasks: number;
@@ -58,7 +62,10 @@ const taskPreviewLimit = 6;
 const navigationGroups: Array<{ label: string; entries: NavigationEntry[] }> = [
   {
     label: "",
-    entries: [{ key: "planner", icon: <CalendarOutlined />, label: "Planner" }],
+    entries: [
+      { key: "planner", icon: <CalendarOutlined />, label: "Planner" },
+      { key: "notes", icon: <FormOutlined />, label: "Ghi chú", countKey: "notes" },
+    ],
   },
   {
     label: "Lịch trình",
@@ -228,7 +235,8 @@ export function MobileBottomNavigation({
       icon: <CheckSquareOutlined />,
       label: "Công việc",
     },
-    { key: "tags" as const, icon: <TagsOutlined />, label: "Quản lý tag" },
+    // Tags stay reachable from the menu; notes are the everyday stop.
+    { key: "notes" as const, icon: <FormOutlined />, label: "Ghi chú" },
   ];
   return (
     <nav className="planner-bottom-nav" aria-label="Điều hướng điện thoại">

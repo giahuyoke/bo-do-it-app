@@ -13,6 +13,10 @@ rules_version = '2';
 //   createdAt/updatedAt: timestamp.
 // users/{userId}/tags/{tagId}
 //   name: string (1..40), color: six-digit hex string, createdAt/updatedAt: timestamp.
+// users/{userId}/notes/{noteId}
+//   title: string (0..200), color: '' or six-digit hex string, pinned: bool,
+//   items: list (0..100) of {id, text}, createdAt/updatedAt: timestamp.
+//   Rules cannot iterate a list, so per-item shape is enforced by the client.
 // All documents are private to the authenticated user identified by {userId}.
 
 service cloud.firestore {
@@ -133,6 +137,20 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function hasValidNoteFields(data) {
+      return data.keys().hasAll(['title', 'color', 'pinned', 'items', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['title', 'color', 'pinned', 'items', 'createdAt', 'updatedAt'])
+        && data.title is string
+        && data.title.size() <= 200
+        && data.color is string
+        && (data.color == '' || data.color.matches('^#[0-9a-fA-F]{6}$'))
+        && data.pinned is bool
+        && data.items is list
+        && data.items.size() <= 100
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{userId}/tasks/{taskId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId)
@@ -184,6 +202,25 @@ service cloud.firestore {
 
       allow update: if isOwner(userId)
         && hasValidTagFields(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/notes/{noteId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId)
+        && request.query.limit != null
+        && request.query.limit <= 200;
+
+      allow create: if isOwner(userId)
+        && hasValidNoteFields(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && hasValidNoteFields(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
 

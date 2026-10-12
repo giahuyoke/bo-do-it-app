@@ -72,3 +72,21 @@ export interface PlannerTag {
 export interface PlannerTagInput {
   name: string;
 }
+
+/** A checklist line. Ticking one off deletes it, so there is no "done" flag. */
+export interface NoteItem {
+  id: string;
+  text: string;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  color: string;
+  pinned: boolean;
+  items: NoteItem[];
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export type NotePatch = Partial<Pick<Note, "title" | "color" | "pinned" | "items">>;

@@ -35,8 +35,10 @@ interface QuickAddDrawerProps {
   initialDate: Dayjs;
   initialType: PlannerFormItemType;
   item: PlannerItem | null;
+  initialTitle?: string;
   tags: PlannerTag[];
   onClose: () => void;
+  onCreated?: () => void;
   onOpenTagManager: () => void;
 }
 
@@ -46,8 +48,10 @@ export function QuickAddDrawer({
   initialDate,
   initialType,
   item,
+  initialTitle = "",
   tags,
   onClose,
+  onCreated,
   onOpenTagManager,
 }: QuickAddDrawerProps) {
   const { message } = App.useApp();
@@ -100,7 +104,7 @@ export function QuickAddDrawer({
 
     form.setFieldsValue({
       type: initialType,
-      title: "",
+      title: initialTitle,
       ranges: [{ startAt: initialDate.startOf("day"), endAt: null }],
       color: "",
       completed: false,
@@ -108,7 +112,7 @@ export function QuickAddDrawer({
       tagId: undefined,
       note: "",
     });
-  }, [form, initialDate, initialType, item, open]);
+  }, [form, initialDate, initialTitle, initialType, item, open]);
 
   const submit = async (values: PlannerFormValues) => {
     if (savingRef.current) return;
@@ -165,6 +169,7 @@ export function QuickAddDrawer({
         await saveEventSeries(userId, existing?.id ?? null, eventInputs);
       }
 
+      if (!item) onCreated?.();
       const added = item ? ranges.length - 1 : ranges.length;
       void message.success(
         item

@@ -23,6 +23,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vit
 import { createTask, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
 import { createEvent, updateEvent } from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
+import {
+  createNote,
+  deleteNote,
+  newNoteItem,
+  removeNoteItem,
+  restoreNoteItem,
+  updateNote,
+} from "@/lib/firebase/notes";
 
 let testEnvironment: RulesTestEnvironment;
 let sdkDb: Firestore;
@@ -227,5 +235,35 @@ describe("Firestore ownership rules", () => {
         reminderMinutes: 999,
       }),
     );
+  });
+
+  test("checklist: SDK payloads create, tick off, undo and delete a note", async () => {
+    const milk = newNoteItem("Sữa tươi");
+    const note = await createNote("alice", "  Đi chợ  ", [milk, newNoteItem("Trứng"), newNoteItem("   ")]);
+    expect((await getDoc(note)).data()).toMatchObject({ title: "Đi chợ", color: "", pinned: false });
+    expect((await getDoc(note)).data()?.items).toHaveLength(2);
+
+    await updateNote("alice", note.id, { pinned: true, color: "#e77991" });
+    const removed = await removeNoteItem("alice", note.id, milk.id);
+    expect(removed).toEqual({ item: milk, index: 0 });
+    expect((await getDoc(note)).data()?.items.map((item: { text: string }) => item.text)).toEqual(["Trứng"]);
+
+    await restoreNoteItem("alice", note.id, milk, 0);
+    expect((await getDoc(note)).data()?.items[0]).toEqual(milk);
+    await deleteNote("alice", note.id);
+  });
+
+  test("checklist: rejects foreign owners, extra fields and oversized lists", async () => {
+    const note = await createNote("alice", "Riêng tư");
+    const bob = testEnvironment.authenticatedContext("bob").firestore();
+    await assertFails(getDoc(doc(bob, "users/alice/notes", note.id)));
+    await assertFails(updateDoc(doc(bob, "users/alice/notes", note.id), { title: "Bị sửa", updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes", note.id), { extra: true, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(sdkDb, "users/alice/notes", note.id), {
+      items: Array.from({ length: 101 }, (_, index) => ({ id: String(index), text: "x" })),
+      updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(getDocs(query(collection(sdkDb, "users/alice/notes"), limit(200))));
+    await assertFails(getDocs(query(collection(sdkDb, "users/alice/notes"), limit(201))));
   });
 });

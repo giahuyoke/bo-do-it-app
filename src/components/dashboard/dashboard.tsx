@@ -25,7 +25,11 @@ import {
 } from "@/components/planner/planner-calendar";
 import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
+import { NotesPage } from "@/components/notes/notes-page";
 import { usePlannerDashboard } from "@/hooks/use-planner-dashboard";
+import { useRealtimeNotes } from "@/hooks/use-realtime-notes";
+import type { Note, NoteItem } from "@/lib/firebase/models";
+import { removeNoteItem } from "@/lib/firebase/notes";
 import type { PlannerItem } from "@/lib/planner";
 import { setTaskCompleted } from "@/lib/firebase/tasks";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
@@ -58,8 +62,14 @@ export function Dashboard() {
     selectedDate,
     section: activeSection,
   });
+  const notesState = useRealtimeNotes(user?.uid ?? "");
 
   if (!user) return null;
+
+  const counts = {
+    ...planner.counts,
+    notes: notesState.notes.filter((note) => note.items.length).length,
+  };
 
   const closeMobileNavigation = () => setMobileNavigationOpen(false);
 
@@ -111,6 +121,21 @@ export function Dashboard() {
     setDrawer({ open: true, type, item: null });
   };
 
+  // A checklist line becomes a task for the selected day; once that task is
+  // saved, the line is ticked off the checklist.
+  const convertNoteItem = (note: Note, item: NoteItem) => {
+    setDrawer({
+      open: true,
+      type: "task",
+      item: null,
+      initialTitle: item.text,
+      onCreated: () =>
+        void removeNoteItem(user.uid, note.id, item.id).catch((error: unknown) =>
+          message.error(firebaseErrorMessage(error, "Không thể cập nhật checklist.")),
+        ),
+    });
+  };
+
   const openEdit = (item: PlannerItem) => {
     setDrawer({ open: true, type: item.kind, item });
   };
@@ -139,7 +164,7 @@ export function Dashboard() {
     <div className="planner-shell">
       <DashboardSidebar
         activeSection={activeSection}
-        counts={planner.counts}
+        counts={counts}
         pendingTasks={planner.pendingTasks}
         onNavigate={navigate}
         onOpenItem={openEdit}
@@ -149,7 +174,7 @@ export function Dashboard() {
       />
       <MobileDashboardNavigation
         activeSection={activeSection}
-        counts={planner.counts}
+        counts={counts}
         pendingTasks={planner.pendingTasks}
         open={mobileNavigationOpen}
         onClose={closeMobileNavigation}
@@ -177,7 +202,16 @@ export function Dashboard() {
           />
         ) : null}
 
-        {activeSection === "tags" ? (
+        {activeSection === "notes" ? (
+          <NotesPage
+            userId={user.uid}
+            notes={notesState.notes}
+            loading={notesState.loading}
+            error={notesState.error}
+            search={search}
+            onConvertItem={convertNoteItem}
+          />
+        ) : activeSection === "tags" ? (
           <TagManagerModal userId={user.uid} open embedded
             customTags={planner.customTags} onClose={() => navigate("planner")} />
         ) : activeSection === "today" ? (
@@ -250,8 +284,10 @@ export function Dashboard() {
         initialDate={selectedDate}
         initialType={drawer.type}
         item={drawer.item}
+        initialTitle={drawer.initialTitle}
         tags={planner.allTags}
         onClose={closeDrawer}
+        onCreated={drawer.onCreated}
         onOpenTagManager={() => setTagManagerOpen(true)}
       />
       <TagManagerModal

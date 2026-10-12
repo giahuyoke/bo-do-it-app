@@ -9,6 +9,10 @@ export interface PlannerDrawerState {
   open: boolean;
   type: PlannerItemType;
   item: PlannerItem | null;
+  /** Prefills a new plan's title, e.g. when turning a checklist line into a task. */
+  initialTitle?: string;
+  /** Runs once the new plan is saved, e.g. to tick the checklist line off. */
+  onCreated?: () => void;
 }
 
 export interface PlannerNavigationState {
