@@ -86,8 +86,8 @@ afterAll(async () => {
 
 describe("Firestore ownership rules", () => {
   test("payload từ SDK thực tế lưu và cập nhật task, event, tag", async () => {
-    const tag = await createTag("alice", { name: "  Cá nhân  ", color: "#B9A7F8" });
-    await updateTag("alice", tag.id, { name: "Sáng tạo", color: "#78c6a3" });
+    const tag = await createTag("alice", { name: "  Cá nhân  " });
+    await updateTag("alice", tag.id, { name: "Sáng tạo" });
     const shared = { title: "Kế hoạch kiểm thử", tagId: tag.id, tagName: "Sáng tạo", tagColor: "#78c6a3", reminderMinutes: 15 };
     const task = await createTask("alice", shared);
     await setTaskCompleted("alice", task.id, true);
@@ -113,7 +113,7 @@ describe("Firestore ownership rules", () => {
   });
 
   test("query event và tag, sửa/xóa tag vẫn giữ quyền theo tài khoản", async () => {
-    const tag = await createTag("alice", { name: "Tag riêng", color: "#78c6a3" });
+    const tag = await createTag("alice", { name: "Tag riêng" });
     const bob = testEnvironment.authenticatedContext("bob").firestore();
     await assertSucceeds(getDocs(query(collection(sdkDb, "users/alice/tags"), limit(100))));
     await assertFails(getDocs(query(collection(sdkDb, "users/alice/tags"), limit(101))));

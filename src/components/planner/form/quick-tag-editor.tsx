@@ -5,7 +5,6 @@ import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { useEffect, useState } from "react";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { createTag, updateTag } from "@/lib/firebase/tags";
-import { NativeColorField } from "@/components/planner/form/native-color-field";
 
 interface QuickTagEditorProps {
   userId: string;
@@ -17,7 +16,6 @@ interface QuickTagEditorProps {
 
 interface TagFormValues {
   name: string;
-  color: string;
 }
 
 export function QuickTagEditor({
@@ -33,10 +31,7 @@ export function QuickTagEditor({
 
   useEffect(() => {
     if (!open) return;
-    form.setFieldsValue({
-      name: tag?.name ?? "",
-      color: tag?.color ?? "#78c6a3",
-    });
+    form.setFieldsValue({ name: tag?.name ?? "" });
   }, [form, open, tag]);
 
   const save = async (values: TagFormValues) => {
@@ -85,9 +80,6 @@ export function QuickTagEditor({
           ]}
         >
           <Input autoFocus placeholder="Ví dụ: Thi cử" />
-        </Form.Item>
-        <Form.Item name="color" label="Màu" rules={[{ required: true }]}>
-          <NativeColorField />
         </Form.Item>
       </Form>
     </Modal>

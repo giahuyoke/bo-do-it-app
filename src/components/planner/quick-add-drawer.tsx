@@ -7,10 +7,12 @@ import {
   Form,
   Input,
   Popconfirm,
+  Space,
 } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
+import { ItemColorButton } from "@/components/planner/form/item-color-button";
 import { PlannerDetailsFields } from "@/components/planner/form/planner-details-fields";
 import { PlannerTypeField } from "@/components/planner/form/planner-type-field";
 import { ScheduleFields } from "@/components/planner/form/schedule-fields";
@@ -25,7 +27,7 @@ import type {
   TaskInput,
 } from "@/lib/firebase/models";
 import { createTask, deleteTask, updateTask } from "@/lib/firebase/tasks";
-import type { PlannerItem } from "@/lib/planner";
+import { defaultItemColor, type PlannerItem } from "@/lib/planner";
 
 interface QuickAddDrawerProps {
   userId: string;
@@ -54,6 +56,11 @@ export function QuickAddDrawer({
   const saveAndContinue = useRef(false);
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
+  // A deleted tag would render as its raw id in the Select; drop it instead.
+  // An effect event, so tag updates mid-edit never reset the form.
+  const knownTagId = useEffectEvent((tagId: string | null) =>
+    tags.some((tag) => tag.id === tagId) ? tagId! : undefined,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -64,9 +71,10 @@ export function QuickAddDrawer({
         title: item.data.title,
         startAt: item.data.deadline ? dayjs(item.data.deadline) : initialDate,
         endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
+        color: item.data.tagColor,
         completed: item.data.status === "done",
         reminderMinutes: item.data.reminderMinutes ?? -1,
-        tagId: item.data.tagId ?? undefined,
+        tagId: knownTagId(item.data.tagId),
         note: item.data.description,
       });
       return;
@@ -78,21 +86,20 @@ export function QuickAddDrawer({
         title: item.data.title,
         startAt: dayjs(item.data.startAt),
         endAt: item.data.endAt ? dayjs(item.data.endAt) : null,
-        location: item.data.location,
+        color: item.data.tagColor,
         reminderMinutes: item.data.reminderMinutes ?? -1,
-        tagId: item.data.tagId ?? undefined,
+        tagId: knownTagId(item.data.tagId),
         note: item.data.description,
       });
       return;
     }
 
-    const startAt = initialDate.hour(dayjs().hour() + 1).minute(0).second(0);
     form.setFieldsValue({
       type: initialType,
       title: "",
-      startAt,
+      startAt: initialDate.startOf("day"),
       endAt: null,
-      location: "",
+      color: "",
       completed: false,
       reminderMinutes: 15,
       tagId: undefined,
@@ -110,17 +117,22 @@ export function QuickAddDrawer({
       description: values.note,
       tagId: selectedTag?.id ?? null,
       tagName: selectedTag?.name ?? "",
-      tagColor: selectedTag?.color ?? "",
+      tagColor: values.color ?? "",
       reminderMinutes:
         values.reminderMinutes === -1 ? null : values.reminderMinutes,
     };
+
+    // Plans are date-only: span from the start of the first day to the end of
+    // the last, so a same-day end still satisfies the rules' endAt > startAt.
+    const startAt = values.startAt?.startOf("day") ?? null;
+    const endAt = values.endAt?.endOf("day") ?? null;
 
     try {
       if (values.type === "task") {
         const taskInput: TaskInput = {
           ...sharedFields,
-          deadline: values.startAt?.toDate() ?? null,
-          endAt: values.endAt?.toDate() ?? null,
+          deadline: startAt?.toDate() ?? null,
+          endAt: endAt?.toDate() ?? null,
           completed: values.completed ?? false,
           priority: item?.kind === "task" ? item.data.priority : "medium",
           status: item?.kind === "task" && item.data.status === "in_progress" ? "in_progress" : "todo",
@@ -132,14 +144,14 @@ export function QuickAddDrawer({
           await createTask(userId, taskInput);
         }
       } else {
-        const startAt = values.startAt;
         if (!startAt) return;
 
         const eventInput: EventInput = {
           ...sharedFields,
-          location: values.location,
+          // The form no longer edits location; keep whatever an event had.
+          location: item?.kind === "event" ? item.data.location : "",
           startAt: startAt.toDate(),
-          endAt: values.endAt?.toDate() ?? null,
+          endAt: endAt?.toDate() ?? null,
         };
 
         if (item?.kind === "event") {
@@ -152,7 +164,7 @@ export function QuickAddDrawer({
       void message.success(item ? "Đã cập nhật kế hoạch." : "Đã thêm vào planner.");
 
       if (saveAndContinue.current && !item) {
-        form.setFieldsValue({ title: "", note: "", location: "" });
+        form.setFieldsValue({ title: "", note: "" });
         saveAndContinue.current = false;
       } else {
         onClose();
@@ -245,15 +257,22 @@ export function QuickAddDrawer({
       >
         <PlannerTypeField disabled={Boolean(item)} />
 
-        <Form.Item
-          name="title"
-          label="Nội dung"
-          rules={[
-            { required: true, whitespace: true, message: "Nhập nội dung kế hoạch." },
-            { max: 200, message: "Nội dung tối đa 200 ký tự." },
-          ]}
-        >
-          <Input size="large" placeholder="Bạn dự định làm gì?" autoFocus />
+        <Form.Item label="Nội dung" required>
+          <Space.Compact className="w-full">
+            <Form.Item
+              name="title"
+              noStyle
+              rules={[
+                { required: true, whitespace: true, message: "Nhập nội dung kế hoạch." },
+                { max: 200, message: "Nội dung tối đa 200 ký tự." },
+              ]}
+            >
+              <Input size="large" placeholder="Bạn dự định làm gì?" autoFocus />
+            </Form.Item>
+            <Form.Item name="color" noStyle>
+              <ItemColorButton fallbackColor={defaultItemColor(itemType)} />
+            </Form.Item>
+          </Space.Compact>
         </Form.Item>
 
         <ScheduleFields type={itemType} />

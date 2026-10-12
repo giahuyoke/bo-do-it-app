@@ -181,7 +181,7 @@ export function Dashboard() {
             onAdd={() => openCreate("task", dayjs())} onEdit={openEdit} onToggleTask={toggleTask} />
         ) : <>
         <section className="planner-overview" aria-label="Tổng quan kế hoạch">
-          <div className="planner-overview-intro"><span className="planner-eyebrow">KHÔNG GIAN CỦA BẠN</span><h1>Ít bộn bề.<br /><span>Thêm thảnh thơi.</span></h1><p>Dành thời gian cho những điều quan trọng.</p></div>
+          <div className="planner-overview-intro"><span className="planner-eyebrow">KHÔNG GIAN CỦA BẠN</span><h1>Ít bộn bề. <span>Thêm thảnh thơi.</span></h1></div>
           <div className="planner-stats">
             <button type="button" onClick={() => navigate("today")}><span className="stat-dot lavender" /><strong>{planner.counts.today.toString().padStart(2, "0")}</strong><span>Kế hoạch hôm nay</span></button>
             <button type="button" onClick={() => navigate("tasks")}><span className="stat-dot peach" /><strong>{planner.counts.tasks.toString().padStart(2, "0")}</strong><span>Việc đang chờ</span></button>

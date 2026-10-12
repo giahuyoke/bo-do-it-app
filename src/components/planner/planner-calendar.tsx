@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import {
   plannerItemColor,
   plannerItemDate,
+  plannerItemSchedule,
   type PlannerItem,
 } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
@@ -34,15 +35,6 @@ interface PlannerCalendarProps {
   onVisibleDateChange: (date: Dayjs) => void;
   onEditItem: (item: PlannerItem) => void;
   onToggleTask: (item: PlannerItem, completed: boolean) => void;
-}
-
-function itemTime(item: PlannerItem) {
-  const date = plannerItemDate(item);
-  if (!date) return "Chưa đặt ngày";
-  const endAt = item.data.endAt;
-  return endAt
-    ? `${dayjs(date).format("HH:mm")}–${dayjs(endAt).format("HH:mm")}`
-    : dayjs(date).format("HH:mm");
 }
 
 function PlannerChip({
@@ -102,7 +94,7 @@ function PlannerChip({
       ) : (
         <span className="planner-chip-dot" style={{ backgroundColor: color }} />
       )}
-      {!compact ? <span className="planner-chip-time">{itemTime(item)}</span> : null}
+      {!compact ? <span className="planner-chip-time">{plannerItemSchedule(item)}</span> : null}
       <ItemTitle title={item.data.title} completed={isDone} className="truncate" />
     </button>
   );
@@ -231,7 +223,7 @@ export function PlannerCalendar({
                   <ItemTitle title={item.data.title} completed={item.kind === "task" && item.data.status === "done"} className="truncate font-semibold text-slate-800" />
                 </div>
                 <Text type="secondary" className="mt-1 block text-xs!">
-                  <ClockCircleOutlined className="mr-1" /> {itemTime(item)}
+                  <ClockCircleOutlined className="mr-1" /> {plannerItemSchedule(item)}
                   {item.data.tagName ? ` · ${item.data.tagName}` : ""}
                 </Text>
               </div>
@@ -280,6 +272,10 @@ export function PlannerCalendar({
           ))}
           {dayItems.length > 3 ? (
             <span className="planner-more">+{dayItems.length - 3} mục khác</span>
+          ) : null}
+          {/* Narrow cells fit two chips; CSS swaps in this counter on mobile. */}
+          {dayItems.length > 2 ? (
+            <span className="planner-more-compact">+{dayItems.length - 2}</span>
           ) : null}
         </div>
       </div>

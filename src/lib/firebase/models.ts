@@ -71,5 +71,4 @@ export interface PlannerTag {
 
 export interface PlannerTagInput {
   name: string;
-  color: string;
 }

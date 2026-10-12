@@ -7,7 +7,7 @@ export interface PlannerFormValues {
   title: string;
   startAt?: Dayjs | null;
   endAt?: Dayjs | null;
-  location?: string;
+  color?: string;
   completed?: boolean;
   reminderMinutes: number;
   tagId?: string;

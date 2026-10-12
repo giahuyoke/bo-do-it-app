@@ -454,6 +454,9 @@ select {
   color: #71634b;
   font-size: 9px;
 }
+.planner-more-compact {
+  display: none;
+}
 
 .planner-week-grid {
   min-height: 580px;
@@ -760,6 +763,18 @@ select {
   font-family: var(--font-mono);
   font-size: 10px;
 }
+.item-color-button {
+  flex: 0 0 auto;
+  padding-inline: 10px !important;
+}
+.item-color-popover {
+  width: 252px;
+}
+.item-color-popover .tag-color-picker {
+  padding: 4px;
+  border: 0;
+  background: none;
+}
 .native-color-swatch {
   width: 24px;
   height: 24px;
@@ -988,12 +1003,12 @@ a:focus-visible {
   isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 24px;
   overflow: hidden;
-  margin: 0 0 26px;
-  padding: 30px 34px;
+  margin: 0 0 16px;
+  padding: 14px 18px 14px 24px;
   border: 1px solid #eadfba;
-  border-radius: 24px;
+  border-radius: 18px;
   background: linear-gradient(112deg, #faf0cb, #fff6da 60%, #f8f4e7);
 }
 .planner-overview::before,
@@ -1013,37 +1028,29 @@ a:focus-visible {
   min-width: 200px;
 }
 .planner-overview h1 {
-  margin: 10px 0 10px;
-  font-size: clamp(25px, 2.5vw, 36px);
+  margin: 4px 0 0;
+  font-size: clamp(17px, 1.6vw, 21px);
   font-weight: 500;
-  letter-spacing: -1.5px;
-  line-height: 1.45;
+  letter-spacing: -0.6px;
+  line-height: 1.3;
 }
 .planner-overview h1 span {
   color: #977025;
 }
-.planner-overview p {
-  margin: 0;
-  color: #6c5f46;
-  font-size: 11px;
-  line-height: 1.8;
-}
 .planner-stats {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
 .planner-stats button {
   display: flex;
-  flex-direction: column;
-  min-width: 110px;
-  align-items: flex-start;
-  padding: 18px;
-  gap: 9px;
+  align-items: center;
+  padding: 8px 14px;
+  gap: 8px;
   border: 1px solid #ffffffad;
-  border-radius: 17px;
+  border-radius: 12px;
   background: #ffffff91;
   cursor: pointer;
   text-align: left;
@@ -1052,13 +1059,13 @@ a:focus-visible {
     background 0.2s;
 }
 .planner-stats button:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   background: #fff;
 }
 .planner-stats strong {
-  font-size: 30px;
-  font-weight: 400;
-  letter-spacing: -1px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
   line-height: 1.2;
 }
 .planner-stats button > span:last-child {
@@ -1085,14 +1092,7 @@ a:focus-visible {
   box-shadow: 0 0 0 4px #77b7a515;
 }
 .overview-orbit {
-  position: absolute;
-  right: -35px;
-  top: -54px;
-  width: 210px;
-  height: 210px;
-  z-index: -1;
-  transform: rotate(15deg);
-  opacity: 0.2;
+  display: none;
 }
 .overview-orbit::before,
 .overview-orbit::after {
@@ -1255,6 +1255,7 @@ a:focus-visible {
 }
 .planner-tag {
   color: #504531 !important;
+  background: #f3ecd9 !important;
 }
 .planner-week-day {
   cursor: default;
@@ -1379,6 +1380,7 @@ a:focus-visible {
   padding: 7px 10px;
   border-radius: 9px;
   color: #5e513b;
+  background: #f6efdc;
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1412,15 +1414,13 @@ a:focus-visible {
     flex: 1;
   }
   .planner-overview {
-    gap: 20px;
-    padding: 26px;
+    gap: 16px;
   }
   .planner-stats {
-    gap: 7px;
+    gap: 6px;
   }
   .planner-stats button {
-    min-width: 92px;
-    padding: 12px;
+    padding: 8px 10px;
   }
 }
 @media (max-width: 900px) {
@@ -1534,40 +1534,33 @@ a:focus-visible {
   .planner-overview {
     flex-direction: column;
     align-items: stretch;
-    padding: 18px;
-    gap: 16px;
-    border-radius: 18px;
-    margin-bottom: 16px;
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 14px;
+    margin-bottom: 12px;
   }
   .planner-overview h1 {
-    margin-block: 7px 5px;
-    font-size: 23px;
-    line-height: 1.25;
-    letter-spacing: -1px;
-  }
-  .planner-overview p {
-    display: none;
-  }
-  .overview-orbit {
-    display: none;
+    margin-top: 3px;
+    font-size: 16px;
+    letter-spacing: -0.4px;
   }
   .planner-stats {
-    gap: 8px;
+    gap: 6px;
   }
   .planner-stats button {
     min-width: 0;
     flex: 1;
-    padding: 11px 12px;
+    padding: 7px 10px;
     gap: 6px;
-    border-radius: 12px;
+    border-radius: 10px;
   }
   .planner-stats strong {
-    font-size: 23px;
+    font-size: 17px;
   }
   .planner-stats button > span:last-child {
     font-size: 10px;
     white-space: normal;
-    line-height: 1.35;
+    line-height: 1.25;
   }
   .planner-stat-completed {
     display: none !important;
@@ -1655,6 +1648,14 @@ a:focus-visible {
   .planner-cell-items .planner-chip:nth-child(n + 3),
   .planner-cell-items .planner-more {
     display: none;
+  }
+  .planner-cell-items .planner-more-compact {
+    display: block;
+    color: #71634b;
+    font-size: 8px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
   }
   .planner-cell-items .planner-chip .truncate {
     overflow: hidden;

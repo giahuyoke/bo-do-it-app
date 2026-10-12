@@ -27,7 +27,7 @@ export function NativeColorField({
       <div
         className="tag-color-palette"
         role="group"
-        aria-label="Màu tag có sẵn"
+        aria-label="Màu có sẵn"
       >
         {tagColors.map((color) => {
           const selected = color === currentColor;

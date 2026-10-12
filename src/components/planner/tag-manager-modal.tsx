@@ -16,13 +16,11 @@ import { useState } from "react";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { createTag, deleteTag, updateTag } from "@/lib/firebase/tags";
-import { NativeColorField } from "@/components/planner/form/native-color-field";
 
 const { Text } = Typography;
 
 interface TagFormValues {
   name: string;
-  color: string;
 }
 
 interface TagManagerModalProps {
@@ -62,7 +60,7 @@ export function TagManagerModal({
         void message.success("Đã tạo tag mới.");
       }
       setEditingTag(null);
-      form.setFieldsValue({ name: "", color: "#78c6a3" });
+      form.setFieldsValue({ name: "" });
     } catch (error) {
       void message.error(
         firebaseErrorMessage(error, "Không thể lưu tag."),
@@ -80,7 +78,7 @@ export function TagManagerModal({
           <ul className="tag-manager-list">
             {customTags.map((tag) => (
               <li key={tag.id}>
-                <span className="tag-badge" style={{ background: `${tag.color}25` }}><i style={{ background: tag.color }} />{tag.name}</span>
+                <span className="tag-badge">{tag.name}</span>
                 <div className="tag-row-actions">
                   <Button
                     key="edit"
@@ -89,13 +87,13 @@ export function TagManagerModal({
                     aria-label={`Sửa tag ${tag.name}`}
                     onClick={() => {
                       setEditingTag(tag);
-                      form.setFieldsValue({ name: tag.name, color: tag.color });
+                      form.setFieldsValue({ name: tag.name });
                     }}
                   />
                   <Popconfirm
                     key="delete"
                     title="Xóa tag này?"
-                    description="Các kế hoạch cũ vẫn giữ màu tag hiện tại."
+                    description="Các kế hoạch đang gắn tag này sẽ không còn tag."
                     okText="Xóa"
                     cancelText="Hủy"
                     okButtonProps={{ danger: true }}
@@ -104,7 +102,7 @@ export function TagManagerModal({
                         await deleteTag(userId, tag.id);
                         if (editingTag?.id === tag.id) {
                           setEditingTag(null);
-                          form.setFieldsValue({ name: "", color: "#78c6a3" });
+                          form.setFieldsValue({ name: "" });
                         }
                         void message.success("Đã xóa tag.");
                       } catch (error) {
@@ -131,7 +129,7 @@ export function TagManagerModal({
           form={form}
           className="tag-manager-form"
           disabled={saving}
-          initialValues={{ name: "", color: "#78c6a3" }}
+          initialValues={{ name: "" }}
           layout="vertical"
           requiredMark={false}
           onFinish={(values) => void saveTag(values)}
@@ -149,15 +147,12 @@ export function TagManagerModal({
           >
             <Input placeholder="Ví dụ: Thi cử" />
           </Form.Item>
-          <Form.Item name="color" label="Màu" rules={[{ required: true }]}>
-            <NativeColorField />
-          </Form.Item>
           <Space className="w-full justify-end">
             {editingTag ? (
               <Button
                 onClick={() => {
                   setEditingTag(null);
-                  form.setFieldsValue({ name: "", color: "#78c6a3" });
+                  form.setFieldsValue({ name: "" });
                 }}
               >
                 Hủy sửa
@@ -181,7 +176,7 @@ export function TagManagerModal({
       <div className="tag-manager-heading">
         <span className="planner-eyebrow">MỌI THỨ ĐÚNG CHỖ</span>
         <h1>Quản lý tag<span className="heading-sparkle" aria-hidden="true" /></h1>
-        <p>Một chút màu sắc. Một ngày ngăn nắp hơn.<br />Tạo, đổi tên và chọn màu để phân loại kế hoạch theo cách của bạn.</p>
+        <p>Tạo và đổi tên tag để phân loại kế hoạch theo cách của bạn.</p>
       </div>
       {content}
     </section>

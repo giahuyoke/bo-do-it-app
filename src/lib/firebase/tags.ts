@@ -29,20 +29,20 @@ function tagFromDocument(data: ReturnType<typeof documentData>): PlannerTag {
   };
 }
 
+// Items carry their own color now; tags are names only. The rules still
+// require a color on each tag document, so new tags get this fixed one.
+const storedTagColor = "#78c6a3";
+
 function tagPayload(input: PlannerTagInput) {
   const name = input.name.trim();
-  const color = input.color.trim().toLowerCase();
   if (!name || name.length > 40) throw new Error("Tên tag cần từ 1 đến 40 ký tự.");
-  if (!/^#[0-9a-f]{6}$/.test(color)) throw new Error("Vui lòng chọn màu tag không có độ trong suốt.");
-  return {
-    name,
-    color,
-  };
+  return { name };
 }
 
 export function createTag(userId: string, input: PlannerTagInput) {
   return addDoc(tagsCollection(userId), {
     ...tagPayload(input),
+    color: storedTagColor,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

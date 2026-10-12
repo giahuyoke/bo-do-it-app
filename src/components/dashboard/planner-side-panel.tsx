@@ -146,7 +146,7 @@ export function PlannerSidePanel({
               <ItemTitle title={nextReminder.data.title} completed={nextReminder.kind === "task" && nextReminder.data.status === "done"} />
             </div>
             <Text type="secondary" className="text-xs!">
-              {dayjs(plannerItemDate(nextReminder)).format("DD/MM · HH:mm")}
+              {dayjs(plannerItemDate(nextReminder)).format("DD/MM/YYYY")}
             </Text>
           </div>
         </section>
@@ -197,7 +197,7 @@ export function PlannerSidePanel({
         </div>
         <Space className="mt-3" size={[6, 8]} wrap>
           {tags.slice(0, 8).map((tag) => (
-            <Tag key={tag.id} color={tag.color} className="planner-tag">
+            <Tag key={tag.id} className="planner-tag">
               {tag.name}
             </Tag>
           ))}

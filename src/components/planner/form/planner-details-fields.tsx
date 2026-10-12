@@ -60,18 +60,7 @@ export function PlannerDetailsFields({
                 virtual={false}
                 popupMatchSelectWidth={240}
                 getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
-                options={tags.map((tag) => ({
-                  value: tag.id,
-                  label: (
-                    <span className="inline-flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      {tag.name}
-                    </span>
-                  ),
-                }))}
+                options={tags.map((tag) => ({ value: tag.id, label: tag.name }))}
               />
             </Form.Item>
             <Button
