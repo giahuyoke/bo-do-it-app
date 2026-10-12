@@ -309,11 +309,6 @@ export function PlannerCalendar({
           <span className={isToday ? "planner-today-number" : ""}>
             {date.date()}
           </span>
-          {dayItems.length ? (
-            <span className="planner-day-count" title={`${dayItems.length} mục trong ngày`}>
-              {dayItems.length} mục
-            </span>
-          ) : null}
           <span className="planner-lunar-date" title="Âm lịch">
             {formatLunarDate(date.toDate(), date.date() === 1)}
           </span>

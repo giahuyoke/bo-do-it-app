@@ -11,6 +11,7 @@ import {
   compareByCreation,
   comparePlannerItems,
   plannerItemCoversDay,
+  plannerItemOverlaps,
   plannerItemDate,
   type PlannerItem,
 } from "@/lib/planner";
@@ -126,13 +127,18 @@ export function usePlannerDashboard({
     [visibleItems],
   );
 
-  const pendingTasks = useMemo(
-    () =>
-      allItems
-        .filter((item) => item.kind === "task" && item.data.status !== "done")
-        .sort(comparePlannerItems),
-    [allItems],
-  );
+  // Sidebar preview: open tasks falling anywhere from today to 7 days ahead.
+  const pendingTasks = useMemo(() => {
+    const today = dayjs();
+    return allItems
+      .filter(
+        (item) =>
+          item.kind === "task" &&
+          item.data.status !== "done" &&
+          plannerItemOverlaps(item, today, today.add(7, "day")),
+      )
+      .sort(comparePlannerItems);
+  }, [allItems]);
 
   const nextReminder = useMemo(
     () =>

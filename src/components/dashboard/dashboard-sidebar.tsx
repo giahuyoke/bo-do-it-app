@@ -42,7 +42,7 @@ export interface DashboardCounts {
 interface NavigationProps {
   activeSection: DashboardSection;
   counts: DashboardCounts;
-  /** Open tasks, already sorted, for the expandable "Nhiệm vụ" preview. */
+  /** Open tasks due in the next 7 days, sorted, for the "Nhiệm vụ" preview. */
   pendingTasks: PlannerItem[];
   onNavigate: (section: DashboardSection) => void;
   onOpenItem: (item: PlannerItem) => void;
@@ -116,7 +116,7 @@ function TaskPreview({
 }) {
   if (!tasks.length) {
     return (
-      <p className="planner-task-preview-empty">Không có nhiệm vụ đang chờ.</p>
+      <p className="planner-task-preview-empty">Không có nhiệm vụ trong 7 ngày tới.</p>
     );
   }
 
@@ -145,7 +145,7 @@ function TaskPreview({
             className="planner-task-preview-more"
             onClick={() => onNavigate("tasks")}
           >
-            Xem tất cả {tasks.length} nhiệm vụ
+            Xem tất cả nhiệm vụ
           </button>
         </li>
       ) : null}
