@@ -1,7 +1,5 @@
 import {
-  browserLocalPersistence,
   GoogleAuthProvider,
-  setPersistence,
   signInWithPopup,
   signOut,
   type UserCredential,
@@ -11,9 +9,10 @@ import { getFirebaseAuth } from "@/lib/firebase/client";
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-export async function signInWithGoogle(): Promise<UserCredential> {
+export function signInWithGoogle(): Promise<UserCredential> {
   const auth = getFirebaseAuth();
-  await setPersistence(auth, browserLocalPersistence);
+  // getAuth already persists sessions. Avoid async work before opening the popup
+  // so the browser can associate it with the user's click.
   return signInWithPopup(auth, googleProvider);
 }
 

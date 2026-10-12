@@ -2,7 +2,8 @@
 
 import { GoogleOutlined } from "@ant-design/icons";
 import { Alert, App, Button, Card, Spin, Typography } from "antd";
-import type { ReactNode } from "react";
+import { FirebaseError } from "firebase/app";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   isFirebaseConfigured,
@@ -14,6 +15,8 @@ const { Paragraph, Text, Title } = Typography;
 export function AuthGate({ children }: { children: ReactNode }) {
   const { message } = App.useApp();
   const { loading, signIn, user } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   if (!isFirebaseConfigured) {
     return (
@@ -68,20 +71,43 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 Lịch trình và nhiệm vụ của bạn được sắp xếp trực quan trong một planner duy nhất.
               </Paragraph>
             </div>
+            {popupBlocked && (
+              <Alert
+                type="warning"
+                showIcon
+                title="Trình duyệt đã chặn cửa sổ đăng nhập Google"
+                description="Hãy cho phép cửa sổ bật lên (pop-up) cho trang web này trong cài đặt trình duyệt, rồi bấm Tiếp tục với Google để thử lại."
+              />
+            )}
             <Button
               block
               type="primary"
               size="large"
               icon={<GoogleOutlined />}
+              loading={signingIn}
               onClick={async () => {
+                if (signingIn) return;
+                setSigningIn(true);
+                setPopupBlocked(false);
                 try {
                   await signIn();
                 } catch (error) {
+                  if (error instanceof FirebaseError) {
+                    if (error.code === "auth/popup-blocked") {
+                      setPopupBlocked(true);
+                      return;
+                    }
+                    if (error.code === "auth/popup-closed-by-user") {
+                      return;
+                    }
+                  }
                   void message.error(
                     error instanceof Error
                       ? error.message
                       : "Không thể đăng nhập bằng Google.",
                   );
+                } finally {
+                  setSigningIn(false);
                 }
               }}
             >
