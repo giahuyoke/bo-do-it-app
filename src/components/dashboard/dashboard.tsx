@@ -18,6 +18,7 @@ import type {
   PlannerItemType,
 } from "@/components/dashboard/dashboard-types";
 import { PlannerSidePanel } from "@/components/dashboard/planner-side-panel";
+import { TodayPanel } from "@/components/dashboard/today-panel";
 import {
   PlannerCalendar,
   type PlannerView,
@@ -65,7 +66,6 @@ export function Dashboard() {
   const selectDate = (date: Dayjs) => {
     setSelectedDate(date);
     setVisibleDate(date);
-    setActiveSection(date.isSame(dayjs(), "day") ? "today" : "planner");
   };
 
   const goToToday = () => {
@@ -158,7 +158,7 @@ export function Dashboard() {
           user={user}
           search={search}
           onSearchChange={setSearch}
-          onAdd={() => openCreate("event")}
+          onAdd={() => openCreate(activeSection === "today" ? "task" : "event", activeSection === "today" ? dayjs() : selectedDate)}
           onOpenMobileNavigation={() => setMobileNavigationOpen(true)}
           onSignOut={() => void signOut()}
         />
@@ -176,6 +176,9 @@ export function Dashboard() {
         {activeSection === "tags" ? (
           <TagManagerModal userId={user.uid} open embedded defaultTags={defaultPlannerTags}
             customTags={planner.customTags} onClose={() => navigate("planner")} />
+        ) : activeSection === "today" ? (
+          <TodayPanel items={planner.allItems} today={dayjs()} search={search} loading={planner.loading}
+            onAdd={() => openCreate("task", dayjs())} onEdit={openEdit} onToggleTask={toggleTask} />
         ) : <>
         <section className="planner-overview" aria-label="Tổng quan kế hoạch">
           <div className="planner-overview-intro"><span className="planner-eyebrow">KHÔNG GIAN CỦA BẠN</span><h1>Ít bộn bề.<br /><span>Thêm thảnh thơi.</span></h1><p>Dành thời gian cho những điều quan trọng.</p></div>
@@ -196,7 +199,6 @@ export function Dashboard() {
               onChangeView={setView}
               onChangeFilter={changeFilter}
               onToday={() => {
-                setActiveSection("today");
                 goToToday();
               }}
             />

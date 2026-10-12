@@ -18,6 +18,7 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 import type { PlannerItemType } from "@/components/dashboard/dashboard-types";
 import { DayItem } from "@/components/dashboard/day-item";
+import { ItemTitle } from "@/components/planner/item-title";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { plannerItemDate, type PlannerItem } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
@@ -128,7 +129,7 @@ export function PlannerSidePanel({
               Nhắc hẹn gần nhất
             </Text>
             <div className="mt-1 truncate font-semibold text-slate-800">
-              {nextReminder.data.title}
+              <ItemTitle title={nextReminder.data.title} completed={nextReminder.kind === "task" && nextReminder.data.status === "done"} />
             </div>
             <Text type="secondary" className="text-xs!">
               {dayjs(plannerItemDate(nextReminder)).format("DD/MM · HH:mm")}

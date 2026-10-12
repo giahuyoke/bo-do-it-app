@@ -6,6 +6,7 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { ItemTitle } from "@/components/planner/item-title";
 import {
   plannerItemColor,
   plannerItemDate,
@@ -32,46 +33,34 @@ export function DayItem({ item, onClick, onToggleTask }: DayItemProps) {
   const done = item.kind === "task" && item.data.status === "done";
 
   return (
-    <button type="button" className="day-item" onClick={onClick}>
+    <div className="day-item">
       <span className="day-item-accent" style={{ backgroundColor: color }} />
-      <div className="min-w-0 flex-1 text-left">
-        <div
-          className={`truncate font-medium text-slate-800 ${
-            done ? "line-through text-slate-600" : ""
-          }`}
-        >
-          {item.data.title}
-        </div>
+      <button type="button" className="day-item-main" onClick={onClick}>
+        <ItemTitle title={item.data.title} completed={done} className="day-item-title block truncate font-medium text-slate-800" />
         <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
           <span>{formatItemTime(item)}</span>
           {item.data.tagName ? <span>· {item.data.tagName}</span> : null}
         </div>
-      </div>
+      </button>
       <span className={`item-kind-icon ${item.kind}`}>
         {item.kind === "event" ? (
           <CalendarOutlined />
         ) : (
-          <span
+          <button
+            type="button"
+            className="day-item-toggle"
             role="checkbox"
-            tabIndex={0}
             aria-checked={done}
             aria-label={done ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
             onClick={(event) => {
               event.stopPropagation();
               onToggleTask(!done);
             }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                event.stopPropagation();
-                onToggleTask(!done);
-              }
-            }}
           >
             {done ? <CheckCircleFilled /> : <CheckCircleOutlined />}
-          </span>
+          </button>
         )}
       </span>
-    </button>
+    </div>
   );
 }

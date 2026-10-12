@@ -1,5 +1,7 @@
 "use client";
 
+import { ItemTitle } from "@/components/planner/item-title";
+
 import {
   Alert,
   App,
@@ -134,7 +136,7 @@ export function TaskPanel({ userId }: { userId: string }) {
       key: "title",
       render: (_, task) => (
         <div>
-          <div className="font-medium text-slate-900">{task.title}</div>
+          <ItemTitle title={task.title} completed={task.status === "done"} className="block font-medium text-slate-900" />
           {task.description ? (
             <div className="mt-1 max-w-md text-sm text-slate-500">
               {task.description}

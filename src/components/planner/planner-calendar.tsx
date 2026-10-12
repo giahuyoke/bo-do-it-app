@@ -17,6 +17,7 @@ import {
   type PlannerItem,
 } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
+import { ItemTitle } from "@/components/planner/item-title";
 
 dayjs.locale("vi");
 
@@ -102,7 +103,7 @@ function PlannerChip({
         <span className="planner-chip-dot" style={{ backgroundColor: color }} />
       )}
       {!compact ? <span className="planner-chip-time">{itemTime(item)}</span> : null}
-      <span className="truncate">{item.data.title}</span>
+      <ItemTitle title={item.data.title} completed={isDone} className="truncate" />
     </button>
   );
 }
@@ -207,6 +208,7 @@ export function PlannerCalendar({
                       role="checkbox"
                       tabIndex={0}
                       aria-checked={item.data.status === "done"}
+                      aria-label={item.data.status === "done" ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
                       onClick={(event) => {
                         event.stopPropagation();
                         onToggleTask(item, item.data.status !== "done");
@@ -226,7 +228,7 @@ export function PlannerCalendar({
                       )}
                     </span>
                   ) : <CalendarOutlined style={{ color }} />}
-                  <span className="truncate font-semibold text-slate-800">{item.data.title}</span>
+                  <ItemTitle title={item.data.title} completed={item.kind === "task" && item.data.status === "done"} className="truncate font-semibold text-slate-800" />
                 </div>
                 <Text type="secondary" className="mt-1 block text-xs!">
                   <ClockCircleOutlined className="mr-1" /> {itemTime(item)}
