@@ -170,9 +170,6 @@ export function Dashboard() {
         pendingTasks={planner.pendingTasks}
         onNavigate={navigate}
         onOpenItem={openEdit}
-        onOpenSettings={() =>
-          void message.info("Cài đặt cá nhân sẽ sớm có mặt.")
-        }
       />
       <MobileDashboardNavigation
         activeSection={activeSection}

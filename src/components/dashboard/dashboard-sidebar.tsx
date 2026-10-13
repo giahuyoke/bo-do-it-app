@@ -11,10 +11,13 @@ import {
   SettingOutlined,
   TagsOutlined,
 } from "@ant-design/icons";
-import { Drawer } from "antd";
+import { Drawer, Dropdown } from "antd";
 import dayjs from "dayjs";
 import { useState, type ReactNode } from "react";
 import { ItemTitle } from "@/components/planner/item-title";
+import { useThemeMenuItems } from "@/components/theme-menu";
+import { useTheme } from "@/components/theme-provider";
+import { itemPalette } from "@/lib/color-contrast";
 import {
   plannerItemColor,
   plannerItemDate,
@@ -114,6 +117,7 @@ function TaskPreview({
 }: Pick<NavigationProps, "onNavigate" | "onOpenItem"> & {
   tasks: PlannerItem[];
 }) {
+  const { theme } = useTheme();
   if (!tasks.length) {
     return (
       <p className="planner-task-preview-empty">Không có nhiệm vụ trong 7 ngày tới.</p>
@@ -127,7 +131,7 @@ function TaskPreview({
         return (
           <li key={item.data.id}>
             <button type="button" onClick={() => onOpenItem(item)}>
-              <i style={{ backgroundColor: plannerItemColor(item) }} />
+              <i style={{ backgroundColor: itemPalette(plannerItemColor(item), theme).accent }} />
               <ItemTitle
                 title={item.data.title}
                 completed={false}
@@ -256,18 +260,14 @@ export function MobileBottomNavigation({
   );
 }
 
-interface DashboardSidebarProps extends NavigationProps {
-  onOpenSettings: () => void;
-}
-
 export function DashboardSidebar({
   activeSection,
   counts,
   pendingTasks,
   onNavigate,
   onOpenItem,
-  onOpenSettings,
-}: DashboardSidebarProps) {
+}: NavigationProps) {
+  const themeItems = useThemeMenuItems();
   return (
     <aside className="planner-sidebar">
       <div className="planner-brand">
@@ -292,13 +292,11 @@ export function DashboardSidebar({
         <p>Chọn ba việc quan trọng nhất và bắt đầu từ việc nhỏ.</p>
       </div>
 
-      <button
-        type="button"
-        className="planner-settings-link"
-        onClick={onOpenSettings}
-      >
-        <SettingOutlined /> Cài đặt
-      </button>
+      <Dropdown trigger={["click"]} placement="topLeft" menu={{ items: themeItems }}>
+        <button type="button" className="planner-settings-link">
+          <SettingOutlined /> Cài đặt
+        </button>
+      </Dropdown>
     </aside>
   );
 }

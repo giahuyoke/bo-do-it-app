@@ -4,20 +4,136 @@
 :root {
   --background: #faf8f1;
   --foreground: #302b20;
+  --text-strong: #493f2b;
+  --muted: #6b6355;
+  --text-faint: #9a8d72;
   --accent: #d0a33d;
   --accent-ink: #805b17;
   --accent-soft: #fbf0c9;
+  --accent-soft-strong: #f8e7ac;
   --blue-soft: #e9f1ff;
   --yellow-soft: #fff4cf;
   --pink-soft: #fce8ed;
+  --event-ink: #557bb2;
+  --danger-ink: #b4472f;
+  --warning-ink: #9a4a1c;
+  --warning-bg: #fdebdd;
+
   --border: #e9e3d5;
+  --border-warm: #e5d7b6;
+  --grid-line: #eee9dd;
+  --grid-pattern: #a890510a;
+
   --surface: #ffffff;
-  --muted: #6b6355;
+  --surface-glass: #ffffffed;
+  --surface-translucent: #ffffffb0;
+  --surface-overlay: #fffdf6e6;
+  --surface-warm: #fffdf8;
+  --surface-hover: #fffbee;
+  --surface-muted: #faf7ef;
+  --surface-past: #f3f2ed;
+  --surface-outside: #f0eee7;
+  --chip-neutral: #f3eee1;
+  --hover-soft: #fcf3d7;
+  --selected-bg: #eef2ff;
+  --selected-ring: #98a8e6;
+
+  --hero-from: #faf0cb;
+  --hero-to: #fff9e9;
+  --today-from: #fff0b8;
+  --today-to: #fffae7;
+  --active-from: #faecc1;
+  --active-to: #fff6dc;
+  --body-glow-from: #fcf4dbaa;
+  --body-glow-mid: #fffaf088;
+  --body-glow-to: #f8f4e8aa;
+
+  --btn-from: #f2d47d;
+  --btn-to: #ebc268;
+  --btn-hover-from: #ebc968;
+  --btn-hover-to: #e3b952;
+  --btn-ink: #4d370c;
+
+  /* Empty-state illustrations. */
+  --art-paper: #fffdf6;
+  --art-line: #e2d3a8;
+  --art-accent: #ebc268;
+  --art-soft: #fbefc6;
+  --art-leaf: #9fcfb5;
 }
+
+/* Warm charcoal, not blue-black: the same paper-and-honey palette at night.
+   Keep in step with the dark antd theme in components/providers.tsx. */
+:root[data-theme="dark"] {
+  --background: #15130f;
+  --foreground: #efe7d6;
+  --text-strong: #ddd3bf;
+  --muted: #b5aa94;
+  --text-faint: #8d836f;
+  --accent: #d9ac48;
+  --accent-ink: #e8c46f;
+  --accent-soft: #3a311c;
+  --accent-soft-strong: #4a3c1d;
+  --blue-soft: #1f2b3f;
+  --yellow-soft: #3a3120;
+  --pink-soft: #3d2229;
+  --event-ink: #9cb8e6;
+  --danger-ink: #ec8a8e;
+  --warning-ink: #f0a77a;
+  --warning-bg: #3a2418;
+
+  --border: #352f24;
+  --border-warm: #4a3f2a;
+  --grid-line: #2c271e;
+  --grid-pattern: #ffffff06;
+
+  --surface: #1f1c16;
+  --surface-glass: #1f1c16f0;
+  --surface-translucent: #2a261eb0;
+  --surface-overlay: #1a1712e6;
+  --surface-warm: #221e17;
+  --surface-hover: #2a251b;
+  --surface-muted: #262219;
+  --surface-past: #1a1814;
+  --surface-outside: #171511;
+  --chip-neutral: #2f2a20;
+  --hover-soft: #2f2919;
+  --selected-bg: #232a3d;
+  --selected-ring: #7083c7;
+
+  --hero-from: #2d2616;
+  --hero-to: #201c15;
+  --today-from: #43361a;
+  --today-to: #282217;
+  --active-from: #3d321b;
+  --active-to: #2c2618;
+  --body-glow-from: #2a23146e;
+  --body-glow-mid: #15130f00;
+  --body-glow-to: #1c18116e;
+
+  --btn-from: #e8c46f;
+  --btn-to: #dcae4b;
+  --btn-hover-from: #f0cf7e;
+  --btn-hover-to: #e4b958;
+  --btn-ink: #2e2108;
+
+  --art-paper: #2a251c;
+  --art-line: #5a4c2e;
+  --art-accent: #d9ac48;
+  --art-soft: #3d331d;
+  --art-leaf: #4f8a6c;
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ink: var(--foreground);
+  --color-ink-strong: var(--text-strong);
+  --color-ink-muted: var(--muted);
+  --color-ink-faint: var(--text-faint);
+  --color-accent-ink: var(--accent-ink);
   --font-sans: var(--font-vietnam), "Segoe UI", sans-serif;
   --font-mono: "Cascadia Code", "Courier New", monospace;
 }
@@ -28,7 +144,7 @@
 body {
   margin: 0;
   background:
-    linear-gradient(135deg, #fcf4dbaa, #fffaf088 55%, #f8f4e8aa),
+    linear-gradient(135deg, var(--body-glow-from), var(--body-glow-mid) 55%, var(--body-glow-to)),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -55,7 +171,7 @@ select {
   flex-direction: column;
   padding: 28px 20px 22px;
   border-right: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--surface-overlay);
   backdrop-filter: blur(18px);
 }
 .planner-brand {
@@ -102,7 +218,7 @@ select {
 }
 .planner-nav-heading {
   padding: 0 13px 5px;
-  color: #75694f;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -117,7 +233,7 @@ select {
   padding: 11px 13px;
   border: 0;
   border-radius: 12px;
-  color: #62736b;
+  color: var(--muted);
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -126,10 +242,10 @@ select {
 .planner-side-nav button:hover,
 .planner-settings-link:hover {
   color: var(--accent-ink);
-  background: #f0f8f4;
+  background: var(--hover-soft);
 }
 .planner-side-nav button.is-active {
-  color: #2f7b5b;
+  color: var(--accent-ink);
   font-weight: 600;
   background: var(--accent-soft);
 }
@@ -140,24 +256,24 @@ select {
   min-width: 24px;
   padding: 2px 7px;
   border-radius: 99px;
-  color: #708078;
-  background: #eef3f0;
+  color: var(--muted);
+  background: var(--chip-neutral);
   font-size: 10px;
   font-weight: 700;
   text-align: center;
 }
 .planner-side-nav button.is-active .planner-nav-count {
-  color: #2f7b5b;
-  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-ink);
+  background: var(--surface-translucent);
 }
 .planner-sidebar-card {
   position: relative;
   overflow: hidden;
   margin-top: auto;
   padding: 18px;
-  border: 1px solid #e5efe9;
+  border: 1px solid var(--border-warm);
   border-radius: 18px;
-  background: linear-gradient(145deg, #effaf4, #fdfbf0);
+  background: linear-gradient(145deg, var(--hero-from), var(--hero-to));
 }
 .planner-sidebar-card::after {
   content: "";
@@ -176,7 +292,7 @@ select {
   place-items: center;
   margin-bottom: 12px;
   border-radius: 10px;
-  color: #997418;
+  color: var(--accent-ink);
   background: var(--yellow-soft);
 }
 .planner-sidebar-card strong {
@@ -185,7 +301,7 @@ select {
 }
 .planner-sidebar-card p {
   margin: 7px 0 0;
-  color: #718078;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.55;
 }
@@ -214,7 +330,7 @@ select {
 }
 .planner-title {
   margin: 4px 0 0 !important;
-  color: #263b32 !important;
+  color: var(--foreground) !important;
   font-size: clamp(19px, 2vw, 25px) !important;
   letter-spacing: -0.035em;
 }
@@ -240,7 +356,7 @@ select {
   display: grid;
   place-items: center;
   padding: 2px;
-  border: 2px solid white;
+  border: 2px solid var(--surface);
   border-radius: 50%;
   background: transparent;
   box-shadow: 0 0 0 1px var(--border);
@@ -260,7 +376,7 @@ select {
 .planner-right-panel {
   border: 1px solid var(--border);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface-glass);
   box-shadow: 0 16px 44px rgba(61, 91, 76, 0.055);
 }
 .planner-calendar-card {
@@ -293,9 +409,9 @@ select {
 }
 .planner-today-button {
   margin-left: 2px;
-  border-color: #dce9e1 !important;
+  border-color: var(--border-warm) !important;
   color: var(--accent-ink) !important;
-  background: #f7fbf9 !important;
+  background: var(--surface-muted) !important;
 }
 .planner-toolbar-controls {
   display: flex;
@@ -315,7 +431,7 @@ select {
 .planner-calendar-card .ant-picker-calendar .ant-picker-content th {
   height: 42px;
   padding: 0 10px;
-  color: #6e614a;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -331,8 +447,8 @@ select {
 }
 .planner-calendar-card .ant-picker-cell {
   padding: 0 !important;
-  border-top: 1px solid #edf1ee;
-  border-right: 1px solid #edf1ee;
+  border-top: 1px solid var(--grid-line);
+  border-right: 1px solid var(--grid-line);
 }
 .planner-calendar-card .ant-picker-cell:nth-child(7n) {
   border-right: 0;
@@ -340,33 +456,33 @@ select {
 .planner-date-cell {
   min-height: 116px;
   padding: 9px;
-  background: white;
+  background: var(--surface);
   transition: background-color 140ms ease;
 }
 .planner-date-cell:hover {
-  background: #fbfdfc;
+  background: var(--surface-hover);
 }
 .planner-date-cell.is-selected:not(.is-today) {
-  background: #eef2ff;
-  box-shadow: inset 0 0 0 2px #9aa9e8;
+  background: var(--selected-bg);
+  box-shadow: inset 0 0 0 2px var(--selected-ring);
 }
 .planner-date-cell.is-muted {
-  background: #fafcfb;
+  background: var(--surface-muted);
   opacity: 1;
 }
 .planner-date-cell.is-past {
-  background: #f7f9f8;
+  background: var(--surface-muted);
 }
 .planner-date-cell.is-today {
-  background: linear-gradient(145deg, #fff1bd, #fffaf0);
-  box-shadow: inset 0 0 0 2px #d1a43a;
+  background: linear-gradient(145deg, var(--today-from), var(--surface-warm));
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 .planner-date-number-row {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
-  color: #455a51;
+  color: var(--text-strong);
   font-size: 15px;
   font-weight: 750;
 }
@@ -383,7 +499,7 @@ select {
 }
 .planner-lunar-date {
   margin-left: auto;
-  color: #9a7763;
+  color: var(--text-faint);
   font-size: 9px;
   font-weight: 600;
   white-space: nowrap;
@@ -414,7 +530,7 @@ select {
 .planner-completed-title {
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
-  color: #817763;
+  color: var(--text-faint);
 }
 /* Tasks read bold in the calendar, done or not, so they stand apart from events. */
 .planner-chip.task,
@@ -440,12 +556,12 @@ select {
   border-radius: 50%;
 }
 .planner-chip-time {
-  color: #71634b;
+  color: var(--muted);
   font-size: 9px;
 }
 .planner-more {
   padding-left: 6px;
-  color: #71634b;
+  color: var(--muted);
   font-size: 9px;
 }
 .planner-more-compact {
@@ -463,15 +579,15 @@ select {
   padding: 22px 10px;
   border: 0;
   border-right: 1px solid var(--border);
-  background: white;
+  background: var(--surface);
   cursor: pointer;
 }
 .planner-week-day.is-selected {
-  background: #eef2ff;
+  background: var(--selected-bg);
 }
 .planner-week-label {
   display: block;
-  color: #6e614a;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -479,12 +595,12 @@ select {
 .planner-week-number {
   display: block;
   margin-top: 6px;
-  color: #34483f;
+  color: var(--foreground);
   font-size: 24px;
   font-weight: 700;
 }
 .planner-week-empty {
-  color: #8a806e;
+  color: var(--text-faint);
   font-size: 10px;
 }
 .planner-agenda {
@@ -499,14 +615,14 @@ select {
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
-  border: 1px solid #edf1ee;
+  border: 1px solid var(--grid-line);
   border-radius: 14px;
-  background: white;
+  background: var(--surface);
   cursor: pointer;
   transition: 160ms ease;
 }
 .planner-agenda-item:hover {
-  border-color: #cfe7da;
+  border-color: var(--grid-line);
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(61, 91, 76, 0.07);
 }
@@ -553,13 +669,13 @@ select {
   padding: 10px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: #fafcfb;
+  background: var(--surface-muted);
   cursor: pointer;
   transition: 150ms ease;
 }
 .day-item:hover {
-  border-color: #dfeae3;
-  background: white;
+  border-color: var(--grid-line);
+  background: var(--surface);
 }
 .day-item-main {
   min-width: 0;
@@ -580,14 +696,14 @@ select {
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #916612;
+  color: var(--accent-ink);
   font-size: 19px;
   cursor: pointer;
 }
 .day-item .item-kind-icon.task {
   width: 44px;
   height: 44px;
-  background: #fbf0cd;
+  background: var(--accent-soft-strong);
 }
 .day-item-accent {
   width: 4px;
@@ -605,11 +721,11 @@ select {
   font-size: 12px;
 }
 .item-kind-icon.event {
-  color: #557bb2;
+  color: var(--event-ink);
   background: var(--blue-soft);
 }
 .item-kind-icon.task {
-  color: #a37a16;
+  color: var(--accent-ink);
   background: var(--yellow-soft);
 }
 .planner-reminder-card {
@@ -617,9 +733,9 @@ select {
   gap: 11px;
   margin-top: 16px;
   padding: 14px;
-  border: 1px solid #f2df9c;
+  border: 1px solid var(--border-warm);
   border-radius: 14px;
-  background: linear-gradient(135deg, #fff9e5, #fffdf5);
+  background: linear-gradient(135deg, var(--hero-from), var(--surface-warm));
 }
 .planner-reminder-icon {
   width: 34px;
@@ -628,8 +744,8 @@ select {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 11px;
-  color: #ae8116;
-  background: #f8e7ac;
+  color: var(--accent-ink);
+  background: var(--accent-soft-strong);
 }
 .planner-tag {
   margin: 0 !important;
@@ -648,9 +764,9 @@ select {
   display: grid;
   gap: 12px;
   padding: 13px;
-  border: 1px solid #eadfca;
+  border: 1px solid var(--border-warm);
   border-radius: 14px;
-  background: linear-gradient(135deg, #fffdf8, #faf6eb);
+  background: linear-gradient(135deg, var(--surface-warm), var(--surface-muted));
 }
 
 .tag-color-palette {
@@ -671,9 +787,9 @@ select {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  border: 2px solid #fff;
+  border: 2px solid var(--surface);
   border-radius: 10px;
-  box-shadow: 0 0 0 1px #d9cfbb;
+  box-shadow: 0 0 0 1px var(--border-warm);
   cursor: pointer;
   transition:
     transform 0.15s ease,
@@ -686,11 +802,11 @@ select {
   transform: translateY(-1px);
   box-shadow:
     0 3px 10px #80632b22,
-    0 0 0 1px #c9b990;
+    0 0 0 1px var(--border-warm);
 }
 .tag-color-palette button.is-selected {
   box-shadow:
-    0 0 0 2px #5b4720,
+    0 0 0 2px var(--foreground),
     0 4px 10px #80632b20;
   transform: scale(1.04);
 }
@@ -717,7 +833,7 @@ select {
   position: absolute;
   inset: 4px;
   border-radius: 6px;
-  background: #fffdf8;
+  background: var(--surface-warm);
 }
 .tag-color-custom input {
   position: absolute;
@@ -733,7 +849,7 @@ select {
 .tag-color-custom > span {
   position: relative;
   z-index: 1;
-  color: #66583d;
+  color: var(--muted);
   font-size: 20px;
   font-weight: 400;
   line-height: 1;
@@ -745,15 +861,15 @@ select {
   flex-wrap: wrap;
   align-items: center;
   gap: 9px;
-  color: #786d58;
+  color: var(--muted);
   font-size: 11px;
 }
 .tag-color-value code {
   margin-left: auto;
   padding: 4px 7px;
   border-radius: 7px;
-  color: #5a4c33;
-  background: #f1eadb;
+  color: var(--muted);
+  background: var(--chip-neutral);
   font-family: var(--font-mono);
   font-size: 10px;
 }
@@ -786,7 +902,7 @@ select {
 }
 .ant-drawer .ant-drawer-header-title,
 .ant-modal .ant-modal-title {
-  color: #2d4238;
+  color: var(--foreground);
 }
 
 @media (max-width: 1180px) {
@@ -880,8 +996,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(#a890510a 1px, transparent 1px),
-    linear-gradient(90deg, #a890510a 1px, transparent 1px);
+    linear-gradient(var(--grid-pattern) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-pattern) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 button,
@@ -892,7 +1008,7 @@ textarea {
 }
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid #bd912c;
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 .planner-shell {
@@ -905,7 +1021,7 @@ a:focus-visible {
   padding-top: 30px;
 }
 .planner-sidebar {
-  background: #fffdf6e6;
+  background: var(--surface-overlay);
   padding-top: 34px;
 }
 .planner-brand strong {
@@ -925,50 +1041,50 @@ a:focus-visible {
   box-shadow: 0 6px 18px #b9913030;
 }
 .planner-nav-heading {
-  color: #756951;
+  color: var(--muted);
   font-weight: 600;
 }
 .planner-side-nav button,
 .planner-settings-link {
   min-height: 46px;
-  color: #5c513d;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 500;
 }
 .planner-side-nav button:hover,
 .planner-settings-link:hover {
-  color: #805b17;
-  background: #fcf3d7;
+  color: var(--accent-ink);
+  background: var(--hover-soft);
 }
 .planner-side-nav button.is-active {
-  color: #805b17;
-  background: linear-gradient(105deg, #faecc1, #fff6dc);
-  box-shadow: inset 0 0 0 1px #e9d59690;
+  color: var(--accent-ink);
+  background: linear-gradient(105deg, var(--active-from), var(--active-to));
+  box-shadow: inset 0 0 0 1px var(--border-warm);
 }
 .planner-side-nav button.is-active .planner-nav-count {
-  color: #805b17;
+  color: var(--accent-ink);
 }
 .planner-nav-count {
-  background: #f3eee1;
-  color: #6c5f47;
+  background: var(--chip-neutral);
+  color: var(--muted);
 }
 .planner-sidebar-card {
   margin-top: auto;
-  background: linear-gradient(145deg, #faf0cd, #fff9e9);
-  border-color: #ecdfb7;
+  background: linear-gradient(145deg, var(--hero-from), var(--hero-to));
+  border-color: var(--border-warm);
 }
 .planner-sidebar-card p {
-  color: #6c5e44;
+  color: var(--muted);
 }
 .planner-sidebar-card-icon {
-  color: #9a7422;
-  background: #fff9;
+  color: var(--accent-ink);
+  background: var(--surface-translucent);
 }
 .planner-sidebar-card::after {
   background: #e7c55a45;
 }
 .planner-title {
-  color: #302819 !important;
+  color: var(--foreground) !important;
   font-weight: 600 !important;
   font-size: clamp(16px, 1.5vw, 21px) !important;
   letter-spacing: -0.7px;
@@ -979,17 +1095,17 @@ a:focus-visible {
   letter-spacing: 0.16em;
 }
 .planner-top-actions .ant-input-affix-wrapper {
-  background: #ffffffb0;
+  background: var(--surface-translucent);
 }
 .ant-btn-primary:not(:disabled) {
-  color: #4d370c;
-  background: linear-gradient(115deg, #f2d47d, #ebc268);
+  color: var(--btn-ink);
+  background: linear-gradient(115deg, var(--btn-from), var(--btn-to));
   border-color: transparent;
   box-shadow: 0 5px 14px #b8912822;
 }
 .ant-btn-primary:not(:disabled):hover {
-  color: #4d370c !important;
-  background: linear-gradient(115deg, #ebc968, #e3b952) !important;
+  color: var(--btn-ink) !important;
+  background: linear-gradient(115deg, var(--btn-hover-from), var(--btn-hover-to)) !important;
   transform: translateY(-1px);
 }
 .planner-top-actions > .ant-btn-primary {
@@ -1005,9 +1121,9 @@ a:focus-visible {
   overflow: hidden;
   margin: 0 0 16px;
   padding: 14px 18px 14px 24px;
-  border: 1px solid #eadfba;
+  border: 1px solid var(--border-warm);
   border-radius: 18px;
-  background: linear-gradient(112deg, #faf0cb, #fff6da 60%, #f8f4e7);
+  background: linear-gradient(112deg, var(--hero-from), var(--hero-to) 60%, var(--hero-to));
 }
 .planner-overview::before,
 .tag-manager-heading::before {
@@ -1016,8 +1132,8 @@ a:focus-visible {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(#a38b4b0b 1px, transparent 1px),
-    linear-gradient(90deg, #a38b4b0b 1px, transparent 1px);
+    linear-gradient(var(--grid-pattern) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-pattern) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(90deg, transparent, #000);
 }
@@ -1033,7 +1149,7 @@ a:focus-visible {
   line-height: 1.3;
 }
 .planner-overview h1 span {
-  color: #977025;
+  color: var(--accent-ink);
 }
 .planner-stats {
   display: flex;
@@ -1047,9 +1163,9 @@ a:focus-visible {
   align-items: center;
   padding: 8px 14px;
   gap: 8px;
-  border: 1px solid #ffffffad;
+  border: 1px solid var(--surface-translucent);
   border-radius: 12px;
-  background: #ffffff91;
+  background: var(--surface-translucent);
   cursor: pointer;
   text-align: left;
   transition:
@@ -1058,7 +1174,7 @@ a:focus-visible {
 }
 .planner-stats button:hover {
   transform: translateY(-1px);
-  background: #fff;
+  background: var(--surface);
 }
 .planner-stats strong {
   font-size: 20px;
@@ -1069,7 +1185,7 @@ a:focus-visible {
 .planner-stats button > span:last-child {
   font-size: 11px;
   font-weight: 500;
-  color: #665a43;
+  color: var(--muted);
   white-space: nowrap;
 }
 .stat-dot {
@@ -1100,7 +1216,7 @@ a:focus-visible {
   width: 210px;
   height: 42px;
   border-radius: 50%;
-  background: #c3a348;
+  background: var(--accent);
   transform: translate(-50%, -50%);
 }
 .overview-orbit::after {
@@ -1109,7 +1225,7 @@ a:focus-visible {
 .planner-calendar-card,
 .planner-right-panel {
   box-shadow: 0 8px 32px #80632b08;
-  background: #ffffffed;
+  background: var(--surface-glass);
 }
 .planner-calendar-toolbar {
   flex-wrap: wrap;
@@ -1122,33 +1238,33 @@ a:focus-visible {
   font-weight: 600;
 }
 .planner-today-button {
-  border-color: #e7d8ad !important;
-  background: #fffae9 !important;
+  border-color: var(--border-warm) !important;
+  background: var(--surface-hover) !important;
 }
 .planner-toolbar-controls {
   gap: 8px;
 }
 .planner-toolbar-controls .ant-segmented {
-  background: #f5f0e3;
+  background: var(--chip-neutral);
   font-size: 11px;
   padding: 4px;
 }
 .planner-toolbar-controls .ant-segmented-item-selected {
-  color: #805b17;
+  color: var(--accent-ink);
   box-shadow: 0 2px 5px #896d300d;
 }
 .planner-filter {
   width: 105px;
 }
 .planner-calendar-card .ant-picker-calendar .ant-picker-content th {
-  color: #6e614a;
+  color: var(--muted);
   font-weight: 600;
 }
 .planner-calendar-card .ant-picker-cell {
-  border-color: #eee9dd;
+  border-color: var(--grid-line);
 }
 .planner-date-number-row {
-  color: #493f2b;
+  color: var(--text-strong);
   font-weight: 600;
   font-size: 14px;
 }
@@ -1156,28 +1272,28 @@ a:focus-visible {
   min-height: 108px;
 }
 .planner-date-cell:hover {
-  background: #fffbee;
+  background: var(--surface-hover);
 }
 .planner-date-cell.is-past {
-  background: #f3f2ed;
+  background: var(--surface-past);
 }
 .planner-date-cell.is-muted {
-  background: #f0eee7;
+  background: var(--surface-outside);
   opacity: 1;
 }
 .planner-date-cell.is-muted .planner-date-number-row {
-  color: #918a7b;
+  color: var(--text-faint);
 }
 .planner-date-cell.is-muted .planner-today-number {
   color: #51390e;
 }
 .planner-date-cell.is-selected:not(.is-today) {
-  background: #eef2ff;
-  box-shadow: inset 0 0 0 1.5px #98a8e6;
+  background: var(--selected-bg);
+  box-shadow: inset 0 0 0 1.5px var(--selected-ring);
 }
 .planner-date-cell.is-today {
-  background: linear-gradient(140deg, #fff0b8, #fffae7);
-  box-shadow: inset 0 0 0 1.5px #cda33c;
+  background: linear-gradient(140deg, var(--today-from), var(--today-to));
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 .planner-today-number {
   color: #51390e;
@@ -1188,18 +1304,18 @@ a:focus-visible {
   box-shadow: 0 4px 12px #b9963830;
 }
 .planner-lunar-date {
-  color: #817159;
+  color: var(--text-faint);
   font-weight: 500;
 }
 /* Past days recede; selecting, hovering or focusing restores their content. */
 .planner-date-cell.is-past:not(.is-selected):not(:hover):not(:focus-within)
   .planner-date-number-row {
-  color: #999284;
+  color: var(--text-faint);
   font-weight: 400;
 }
 .planner-date-cell.is-past:not(.is-selected):not(:hover):not(:focus-within)
   .planner-lunar-date {
-  color: #aaa292;
+  color: var(--text-faint);
 }
 .planner-date-cell.is-past:not(.is-selected):not(:hover):not(:focus-within)
   .planner-cell-items {
@@ -1207,13 +1323,13 @@ a:focus-visible {
   filter: saturate(0.4);
 }
 .planner-week-day.is-past:not(.is-selected):not(:hover):not(:focus-within) {
-  background: #f3f2ed;
+  background: var(--surface-past);
 }
 .planner-week-day.is-past:not(.is-selected):not(:hover):not(:focus-within)
   .planner-week-number,
 .planner-week-day.is-past:not(.is-selected):not(:hover):not(:focus-within)
   .planner-week-label {
-  color: #999284;
+  color: var(--text-faint);
   font-weight: 400;
 }
 .planner-week-day.is-past:not(.is-selected):not(:hover):not(:focus-within)
@@ -1237,21 +1353,21 @@ a:focus-visible {
 }
 .planner-right-panel .ant-empty-description {
   font-size: 12px;
-  color: #71644d;
+  color: var(--muted);
 }
 .day-item {
-  background: #faf7ef;
+  background: var(--surface-muted);
   padding: 13px 10px;
 }
 .day-item:hover {
-  border-color: #e5d7b6;
+  border-color: var(--border-warm);
 }
 .planner-agenda-item:hover {
-  border-color: #e0c986;
+  border-color: var(--border-warm);
 }
 .planner-tag {
-  color: #504531 !important;
-  background: #f3ecd9 !important;
+  color: var(--muted) !important;
+  background: var(--chip-neutral) !important;
 }
 .planner-week-day {
   cursor: default;
@@ -1265,7 +1381,7 @@ a:focus-visible {
   border-radius: 12px;
 }
 .planner-week-day.is-selected {
-  background: #eef2ff;
+  background: var(--selected-bg);
 }
 .planner-bottom-nav {
   display: none;
@@ -1274,13 +1390,13 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 24px;
   overflow: hidden;
-  background: #fff;
+  background: var(--surface);
 }
 .tag-manager-heading {
   position: relative;
   isolation: isolate;
   padding: 34px;
-  background: linear-gradient(120deg, #fcf0c8, #fff9e8);
+  background: linear-gradient(120deg, var(--hero-from), var(--hero-to));
   border-bottom: 1px solid var(--border);
 }
 .tag-manager-heading h1 {
@@ -1304,7 +1420,7 @@ a:focus-visible {
   position: absolute;
   inset: 50% auto auto 50%;
   border-radius: 99px;
-  background: #cbaa50;
+  background: var(--accent);
   transform: translate(-50%, -50%);
 }
 .heading-sparkle::before {
@@ -1317,7 +1433,7 @@ a:focus-visible {
 }
 .tag-manager-heading p {
   margin: 0;
-  color: #6b5d43;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.9;
 }
@@ -1332,9 +1448,9 @@ a:focus-visible {
 }
 .tag-manager-form {
   padding: 22px;
-  border: 1px solid #eae0c8;
+  border: 1px solid var(--border-warm);
   border-radius: 18px;
-  background: linear-gradient(140deg, #fffbef, #fffef9);
+  background: linear-gradient(140deg, var(--surface-warm), var(--surface-warm));
 }
 .tag-manager-list .ant-list-item {
   min-height: 64px;
@@ -1343,7 +1459,7 @@ a:focus-visible {
 .tag-manager-list .ant-tag {
   border-radius: 8px;
   padding: 5px 12px;
-  color: #403622;
+  color: var(--foreground);
   font-weight: 500;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -1375,8 +1491,8 @@ a:focus-visible {
   gap: 7px;
   padding: 7px 10px;
   border-radius: 9px;
-  color: #5e513b;
-  background: #f6efdc;
+  color: var(--muted);
+  background: var(--chip-neutral);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1388,12 +1504,12 @@ a:focus-visible {
 }
 .ant-drawer .ant-drawer-header-title,
 .ant-modal .ant-modal-title {
-  color: #493a22;
+  color: var(--foreground);
 }
 .planner-editor .ant-drawer-header {
   padding-top: 24px;
   padding-bottom: 24px;
-  background: linear-gradient(120deg, #fff3ce, #fffaf0);
+  background: linear-gradient(120deg, var(--hero-from), var(--surface-warm));
 }
 .planner-editor .ant-drawer-footer {
   padding: 16px 20px max(16px, env(safe-area-inset-bottom));
@@ -1432,8 +1548,8 @@ a:focus-visible {
     right: 0;
     z-index: 50;
     padding: 8px 12px max(10px, env(safe-area-inset-bottom));
-    border-top: 1px solid #e8ddbe;
-    background: #fffc;
+    border-top: 1px solid var(--border-warm);
+    background: var(--surface-overlay);
     backdrop-filter: blur(20px);
     box-shadow: 0 -6px 24px #9574270d;
   }
@@ -1447,7 +1563,7 @@ a:focus-visible {
     border: 0;
     border-radius: 13px;
     background: transparent;
-    color: #6b5e46;
+    color: var(--muted);
     cursor: pointer;
   }
   .planner-bottom-nav button > .anticon {
@@ -1458,8 +1574,8 @@ a:focus-visible {
     font-weight: 500;
   }
   .planner-bottom-nav button.is-active {
-    color: #805b17;
-    background: linear-gradient(135deg, #faedbf, #fff7df);
+    color: var(--accent-ink);
+    background: linear-gradient(135deg, var(--active-from), var(--active-to));
   }
   .planner-topbar {
     gap: 18px;
@@ -1471,8 +1587,8 @@ a:focus-visible {
   .planner-mobile-menu {
     min-width: 42px;
     height: 44px;
-    border: 1px solid #e7dabb !important;
-    background: #fff9 !important;
+    border: 1px solid var(--border-warm) !important;
+    background: var(--surface-translucent) !important;
     border-radius: 13px;
   }
   .planner-top-actions .ant-input-affix-wrapper {
@@ -1498,10 +1614,10 @@ a:focus-visible {
     justify-content: center;
     gap: 7px;
     padding: 9px;
-    border: 1px solid #e5d7b6;
+    border: 1px solid var(--border-warm);
     border-radius: 11px;
-    color: #6b531d;
-    background: #fffaf0;
+    color: var(--accent-ink);
+    background: var(--surface-warm);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -1510,7 +1626,7 @@ a:focus-visible {
     appearance: none;
   }
   .planner-day-add-actions button:active {
-    background: #f8eac0;
+    background: var(--hover-soft);
   }
 }
 @media (max-width: 680px) {
@@ -1622,7 +1738,7 @@ a:focus-visible {
   }
   .planner-lunar-date {
     margin: 0;
-    color: #aaa291;
+    color: var(--text-faint);
     font-size: 8px;
     font-weight: 400;
     line-height: 1;
@@ -1644,7 +1760,7 @@ a:focus-visible {
   }
   .planner-cell-items .planner-more-compact {
     display: block;
-    color: #71634b;
+    color: var(--muted);
     font-size: 8px;
     font-weight: 600;
     line-height: 1.2;
@@ -1742,7 +1858,7 @@ a:focus-visible {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 24px;
-  background: #fffefb;
+  background: var(--surface-warm);
 }
 .today-heading {
   display: flex;
@@ -1750,7 +1866,7 @@ a:focus-visible {
   justify-content: space-between;
   gap: 20px;
   padding: 30px 34px;
-  background: linear-gradient(115deg, #faf0cb, #fff9e9);
+  background: linear-gradient(115deg, var(--hero-from), var(--hero-to));
   border-bottom: 1px solid var(--border);
 }
 .today-heading h1 {
@@ -1761,7 +1877,7 @@ a:focus-visible {
 }
 .today-heading p {
   margin: 0;
-  color: #6b5f48;
+  color: var(--muted);
   font-size: 13px;
 }
 .today-add-button {
@@ -1774,8 +1890,8 @@ a:focus-visible {
   padding: 10px 17px;
   border: 0;
   border-radius: 12px;
-  color: #4d370c;
-  background: linear-gradient(115deg, #f2d47d, #ebc268);
+  color: var(--btn-ink);
+  background: linear-gradient(115deg, var(--btn-from), var(--btn-to));
   box-shadow: 0 5px 14px #b8912822;
   cursor: pointer;
   touch-action: manipulation;
@@ -1786,7 +1902,7 @@ a:focus-visible {
   transform: translateY(1px);
 }
 .today-add-button:focus-visible {
-  outline: 3px solid #bd912c;
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 .today-body {
@@ -1796,7 +1912,7 @@ a:focus-visible {
   display: grid;
   gap: 10px;
   margin-bottom: 28px;
-  color: #6b5f48;
+  color: var(--muted);
   font-size: 12px;
 }
 .today-progress progress {
@@ -1805,19 +1921,19 @@ a:focus-visible {
   appearance: none;
   border: 0;
   border-radius: 99px;
-  background: #f0ebdf;
+  background: var(--chip-neutral);
   overflow: hidden;
 }
 .today-progress progress::-webkit-progress-bar {
-  background: #f0ebdf;
+  background: var(--chip-neutral);
 }
 .today-progress progress::-webkit-progress-value {
   border-radius: 99px;
-  background: #bc9437;
+  background: var(--accent);
 }
 .today-progress progress::-moz-progress-bar {
   border-radius: 99px;
-  background: #bc9437;
+  background: var(--accent);
 }
 .today-group + .today-group {
   margin-top: 30px;
@@ -1836,8 +1952,8 @@ a:focus-visible {
   min-width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: #f6efdc;
-  color: #806626;
+  background: var(--chip-neutral);
+  color: var(--accent-ink);
   font-size: 11px;
 }
 .today-group ul {
@@ -1850,8 +1966,8 @@ a:focus-visible {
 .today-page .day-item {
   padding: 14px 16px;
   gap: 14px;
-  border: 1px solid #eee7d8;
-  background: #fffdf8;
+  border: 1px solid var(--grid-line);
+  background: var(--surface-warm);
 }
 .today-page .day-item-title {
   white-space: normal;
@@ -1901,17 +2017,17 @@ a:focus-visible {
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid #e6d6a6;
+  border: 1px solid var(--border-warm);
   border-radius: 50%;
-  color: #805b17;
-  background: #fff8e3;
+  color: var(--accent-ink);
+  background: var(--surface-hover);
   font-size: 10px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 120ms ease, background-color 120ms ease;
 }
 .planner-cell-add:hover {
-  background: #f8e6b0;
+  background: var(--hover-soft);
 }
 .planner-date-cell:hover .planner-cell-add,
 .planner-date-cell.is-selected .planner-cell-add,
@@ -1968,7 +2084,7 @@ a:focus-visible {
   flex: 0 0 34px;
   justify-content: center;
   padding: 0;
-  color: #8a7c60;
+  color: var(--text-faint);
   font-size: 10px;
 }
 .planner-nav-toggle .anticon {
@@ -1982,7 +2098,7 @@ a:focus-visible {
   gap: 1px;
   margin: 2px 0 6px 22px;
   padding: 0 0 0 10px;
-  border-left: 1px solid #ecdfb7;
+  border-left: 1px solid var(--border-warm);
   list-style: none;
 }
 .planner-task-preview,
@@ -1994,7 +2110,7 @@ a:focus-visible {
   gap: 8px;
   padding: 5px 8px;
   border-radius: 8px;
-  color: #5c513d;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 400;
 }
@@ -2013,16 +2129,16 @@ a:focus-visible {
 }
 .planner-task-preview time {
   flex-shrink: 0;
-  color: #9a8d72;
+  color: var(--text-faint);
   font-size: 10px;
 }
 .planner-side-nav .planner-task-preview .planner-task-preview-more {
-  color: #977025;
+  color: var(--accent-ink);
   font-weight: 500;
 }
 .planner-task-preview-empty {
   margin: 2px 0 6px 32px;
-  color: #9a8d72;
+  color: var(--text-faint);
   font-size: 12px;
 }
 
@@ -2040,14 +2156,14 @@ a:focus-visible {
 }
 .notes-heading p {
   margin: 0;
-  color: #786d58;
+  color: var(--muted);
   font-size: 12px;
 }
 .notes-sheet {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 8px 28px #80632b0a;
 }
 /* The sheet's rounded corners frame the input, so it draws no border of its
@@ -2059,19 +2175,19 @@ a:focus-visible {
   border: 0 !important;
   border-radius: 18px 18px 0 0;
   box-shadow: inset 0 -1px 0 var(--border) !important;
-  background: #fffaf0;
+  background: var(--surface-warm);
 }
 .notes-sheet .notes-quick-add:focus-within {
-  box-shadow: inset 0 -2px 0 #e0c27a !important;
+  box-shadow: inset 0 -2px 0 var(--accent) !important;
 }
 .notes-quick-add .ant-input-prefix {
   margin-right: 12px;
-  color: #977025;
+  color: var(--accent-ink);
 }
 .notes-error {
   margin: 0;
   padding: 12px 18px;
-  color: #b4472f;
+  color: var(--danger-ink);
   font-size: 13px;
 }
 .notes-list {
@@ -2086,11 +2202,11 @@ a:focus-visible {
   padding: 2px 12px 2px 20px;
 }
 .notes-list li + li {
-  border-top: 1px solid #f3eee1;
+  border-top: 1px solid var(--chip-neutral);
 }
 .notes-list li:hover,
 .notes-list li:focus-within {
-  background: #fdf9ee;
+  background: var(--surface-hover);
 }
 .notes-list li.is-pending {
   opacity: 0.55;
@@ -2099,14 +2215,11 @@ a:focus-visible {
   flex: 1;
   min-width: 0;
   padding: 10px 2px;
-  color: #3f3624;
+  color: var(--foreground);
   font-size: 14px;
 }
-.notes-empty {
-  padding: 40px 0;
-}
 .note-item-convert {
-  color: #977025 !important;
+  color: var(--accent-ink) !important;
   opacity: 0;
 }
 .notes-list li:hover .note-item-convert,
@@ -2127,7 +2240,7 @@ a:focus-visible {
 .note-undo-message button {
   padding: 0;
   border: 0;
-  color: #977025;
+  color: var(--accent-ink);
   background: none;
   font-weight: 600;
   cursor: pointer;
@@ -2149,37 +2262,89 @@ a:focus-visible {
 }
 .weekday-picker button {
   min-height: 40px;
-  border: 1px solid #e6dcc3;
+  border: 1px solid var(--border-warm);
   border-radius: 10px;
-  color: #5c513d;
-  background: #fffdf7;
+  color: var(--muted);
+  background: var(--surface-warm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 .weekday-picker button:hover {
-  border-color: #d8c48f;
+  border-color: var(--border-warm);
 }
 .weekday-picker button.is-selected {
   border-color: #c9a33d;
-  color: #4d370c;
-  background: linear-gradient(115deg, #f2d47d, #ebc268);
+  color: var(--btn-ink);
+  background: linear-gradient(115deg, var(--btn-from), var(--btn-to));
 }
 .class-schedule-summary {
   margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
-  color: #5c513d;
-  background: #fbf3dc;
+  color: var(--muted);
+  background: var(--chip-neutral);
   font-size: 13px;
 }
 .class-schedule-summary.is-warning {
-  color: #9a4a1c;
-  background: #fdebdd;
+  color: var(--warning-ink);
+  background: var(--warning-bg);
 }
 @media (max-width: 680px) {
   .planner-day-add-actions button:nth-child(3) {
     grid-column: 1 / -1;
+  }
+}
+
+/* Empty states: a small drawing, one line, and a way forward. */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 36px 20px;
+  text-align: center;
+}
+.empty-state-art {
+  width: 120px;
+  height: 96px;
+  margin-bottom: 6px;
+}
+.empty-state-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.empty-state-description {
+  max-width: 300px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.empty-state-action {
+  margin-top: 10px;
+}
+.empty-state.is-compact {
+  gap: 4px;
+  padding: 18px 8px 10px;
+}
+.empty-state.is-compact .empty-state-art {
+  width: 88px;
+  height: 70px;
+  margin-bottom: 2px;
+}
+.empty-state.is-compact .empty-state-title {
+  font-size: 13px;
+}
+.empty-state.is-compact .empty-state-description {
+  font-size: 11px;
+}
+@media (max-width: 900px) {
+  /* Mobile already shows add buttons right above the selected day's list. */
+  .planner-selected-day .empty-state-action {
+    display: none;
   }
 }
 

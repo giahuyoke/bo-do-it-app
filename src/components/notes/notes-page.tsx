@@ -1,8 +1,9 @@
 "use client";
 
 import { CalendarOutlined, PlusOutlined } from "@ant-design/icons";
-import { App, Button, Checkbox, Empty, Input, Skeleton, Tooltip } from "antd";
+import { App, Button, Checkbox, Input, Skeleton, Tooltip } from "antd";
 import { useMemo, useState, type ClipboardEvent } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import type { NoteItem } from "@/lib/firebase/models";
 import {
@@ -249,11 +250,19 @@ export function NotesPage({
             })}
           </ul>
         ) : (
-          <Empty
-            className="notes-empty"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={search.trim() ? "Không có mục phù hợp" : "Chưa có gì cần nhớ"}
-          />
+          search.trim() ? (
+            <EmptyState
+              art="search"
+              title="Không có mục phù hợp"
+              description={<>Checklist không có dòng nào chứa “{search.trim()}”.</>}
+            />
+          ) : (
+            <EmptyState
+              art="notes"
+              title="Đầu óc nhẹ tênh"
+              description="Chưa có gì cần nhớ. Gõ vào ô phía trên rồi nhấn Enter, hoặc dán cả một danh sách."
+            />
+          )
         )}
       </div>
     </section>

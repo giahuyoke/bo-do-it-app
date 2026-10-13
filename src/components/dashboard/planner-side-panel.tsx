@@ -7,10 +7,11 @@ import {
   PlusOutlined,
   ReadOutlined,
 } from "@ant-design/icons";
-import { Button, Divider, Dropdown, Empty, Typography } from "antd";
+import { Button, Divider, Dropdown, Typography } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import type { PlannerItemType } from "@/components/dashboard/dashboard-types";
 import { DayItem } from "@/components/dashboard/day-item";
+import { EmptyState } from "@/components/empty-state";
 import { ItemTitle } from "@/components/planner/item-title";
 import { plannerItemDate, type PlannerItem } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
@@ -124,9 +125,16 @@ export function PlannerSidePanel({
               />
             ))
           ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Ngày này đang trống"
+            <EmptyState
+              compact
+              art="calendar"
+              title="Ngày này còn trống"
+              description="Một khoảng trời rộng cho việc bạn muốn làm."
+              action={
+                <Button size="small" icon={<PlusOutlined />} onClick={() => onAdd("task")}>
+                  Thêm vào ngày này
+                </Button>
+              }
             />
           )}
         </div>
@@ -138,10 +146,10 @@ export function PlannerSidePanel({
             <BellOutlined />
           </div>
           <div className="min-w-0 flex-1">
-            <Text className="text-xs! font-semibold uppercase tracking-wider text-amber-700!">
+            <Text className="text-xs! font-semibold uppercase tracking-wider text-accent-ink!">
               Nhắc hẹn gần nhất
             </Text>
-            <div className="mt-1 truncate font-semibold text-slate-800">
+            <div className="mt-1 truncate font-semibold text-ink">
               <ItemTitle title={nextReminder.data.title} completed={nextReminder.kind === "task" && nextReminder.data.status === "done"} />
             </div>
             <Text type="secondary" className="text-xs!">

@@ -3,6 +3,7 @@
 import { MenuOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Input, Typography } from "antd";
 import type { User } from "firebase/auth";
+import { useThemeMenuItems } from "@/components/theme-menu";
 
 const { Text, Title } = Typography;
 
@@ -30,6 +31,7 @@ export function DashboardTopbar({
   onOpenMobileNavigation,
   onSignOut,
 }: DashboardTopbarProps) {
+  const themeItems = useThemeMenuItems();
   return (
     <header className="planner-topbar">
       <div className="flex min-w-0 items-center gap-3">
@@ -52,7 +54,7 @@ export function DashboardTopbar({
         <Input
           allowClear
           value={search}
-          prefix={<SearchOutlined className="text-slate-400" />}
+          prefix={<SearchOutlined className="text-ink-faint" />}
           placeholder="Tìm trong planner..."
           aria-label="Tìm kế hoạch"
           onChange={(event) => onSearchChange(event.target.value)}
@@ -75,6 +77,8 @@ export function DashboardTopbar({
                 disabled: true,
                 label: user.email ?? "Tài khoản Google",
               },
+              { type: "divider" },
+              ...themeItems,
               { type: "divider" },
               {
                 key: "logout",

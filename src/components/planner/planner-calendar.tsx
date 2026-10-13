@@ -7,7 +7,7 @@ import {
   ClockCircleOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Calendar, Empty, Typography } from "antd";
+import { Button, Calendar, Typography } from "antd";
 import type { CalendarProps } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
@@ -23,7 +23,10 @@ import {
   type PlannerItem,
 } from "@/lib/planner";
 import { formatLunarDate } from "@/lib/lunar-calendar";
+import { EmptyState } from "@/components/empty-state";
 import { ItemTitle } from "@/components/planner/item-title";
+import { useTheme } from "@/components/theme-provider";
+import { itemPalette } from "@/lib/color-contrast";
 
 dayjs.locale("vi");
 
@@ -81,7 +84,9 @@ function PlannerChip({
   onClick: () => void;
   onToggleTask: (completed: boolean) => void;
 }) {
-  const color = plannerItemColor(item);
+  const { theme } = useTheme();
+  const palette = itemPalette(plannerItemColor(item), theme);
+  const color = palette.accent;
   const isDone = item.kind === "task" && item.data.status === "done";
 
   return (
@@ -89,9 +94,9 @@ function PlannerChip({
       type="button"
       className={`planner-chip ${item.kind} ${isDone ? "is-done" : ""}`}
       style={{
-        backgroundColor: `${color}26`,
+        backgroundColor: palette.background,
         borderLeftColor: color,
-        color: "#334155",
+        color: palette.text,
       }}
       onClick={(event) => {
         event.stopPropagation();
@@ -145,6 +150,7 @@ export function PlannerCalendar({
   onAddItem,
   agendaScope,
 }: PlannerCalendarProps) {
+  const { theme } = useTheme();
   const datedItems = useMemo(
     () => items.filter((item) => plannerItemDate(item)).sort(comparePlannerItems),
     [items],
@@ -212,11 +218,18 @@ export function PlannerCalendar({
     if (!agendaItems.length) {
       return (
         <div className="flex min-h-96 items-center justify-center">
-          <Empty
-            description={
+          <EmptyState
+            art="calendar"
+            title={
               agendaScope === "month"
-                ? `Không có kế hoạch nào trong ${visibleDate.format("MMMM")}`
-                : "Không có kế hoạch nào"
+                ? `${visibleDate.format("MMMM")} còn thong thả`
+                : "Chưa có kế hoạch nào"
+            }
+            description="Không có kế hoạch nào khớp với bộ lọc hiện tại."
+            action={
+              <Button icon={<PlusOutlined />} onClick={() => onAddItem(selectedDate)}>
+                Thêm kế hoạch
+              </Button>
             }
           />
         </div>
@@ -227,7 +240,7 @@ export function PlannerCalendar({
       <div className="planner-agenda">
         {agendaItems.map((item) => {
           const date = dayjs(plannerItemDate(item));
-          const color = plannerItemColor(item);
+          const color = itemPalette(plannerItemColor(item), theme).accent;
           const schedule = plannerItemSchedule(item);
           return (
             <button
@@ -269,7 +282,7 @@ export function PlannerCalendar({
                       )}
                     </span>
                   ) : <CalendarOutlined style={{ color }} />}
-                  <ItemTitle title={item.data.title} completed={item.kind === "task" && item.data.status === "done"} className="truncate font-semibold text-slate-800" />
+                  <ItemTitle title={item.data.title} completed={item.kind === "task" && item.data.status === "done"} className="truncate font-semibold text-ink" />
                 </div>
                 {schedule || item.data.tagName ? (
                   <Text type="secondary" className="mt-1 block text-xs!">

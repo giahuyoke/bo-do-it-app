@@ -6,6 +6,8 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { ItemTitle } from "@/components/planner/item-title";
+import { useTheme } from "@/components/theme-provider";
+import { itemPalette } from "@/lib/color-contrast";
 import {
   plannerItemColor,
   plannerItemSchedule,
@@ -19,7 +21,8 @@ interface DayItemProps {
 }
 
 export function DayItem({ item, onClick, onToggleTask }: DayItemProps) {
-  const color = plannerItemColor(item);
+  const { theme } = useTheme();
+  const color = itemPalette(plannerItemColor(item), theme).accent;
   const done = item.kind === "task" && item.data.status === "done";
   const meta = [plannerItemSchedule(item), item.data.tagName]
     .filter(Boolean)
@@ -29,9 +32,9 @@ export function DayItem({ item, onClick, onToggleTask }: DayItemProps) {
     <div className="day-item">
       <span className="day-item-accent" style={{ backgroundColor: color }} />
       <button type="button" className="day-item-main" onClick={onClick}>
-        <ItemTitle title={item.data.title} completed={done} className="day-item-title block truncate font-medium text-slate-800" />
+        <ItemTitle title={item.data.title} completed={done} className="day-item-title block truncate font-medium text-ink" />
         {meta ? (
-          <div className="mt-1 truncate text-xs text-slate-600">{meta}</div>
+          <div className="mt-1 truncate text-xs text-ink-muted">{meta}</div>
         ) : null}
       </button>
       <span className={`item-kind-icon ${item.kind}`}>

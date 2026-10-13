@@ -1,12 +1,13 @@
 "use client";
 
 import { StyleProvider } from "@ant-design/cssinjs";
-import { App, ConfigProvider, type ThemeConfig } from "antd";
+import { App, ConfigProvider, theme as antdTheme, type ThemeConfig } from "antd";
 import viVN from "antd/locale/vi_VN";
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 
-const theme: ThemeConfig = {
+const lightTheme: ThemeConfig = {
   token: {
     colorPrimary: "#956b18",
     colorInfo: "#956b18",
@@ -31,6 +32,32 @@ const theme: ThemeConfig = {
   },
 };
 
+// Warm charcoal rather than antd's blue-black, so the dark theme keeps the
+// app's paper-and-honey feel. Matches the dark tokens in globals.css.
+const darkTheme: ThemeConfig = {
+  algorithm: antdTheme.darkAlgorithm,
+  token: {
+    ...lightTheme.token,
+    colorPrimary: "#e2b85a",
+    colorInfo: "#e2b85a",
+    colorSuccess: "#6cc196",
+    colorWarning: "#e2b85a",
+    colorError: "#ec8a8e",
+    colorText: "#efe7d6",
+    colorTextSecondary: "#bfb39c",
+    colorTextTertiary: "#a39882",
+    colorTextPlaceholder: "#8d836f",
+    colorBorder: "#3b3428",
+    colorBgLayout: "#15130f",
+    colorBgContainer: "#1f1c16",
+    colorBgElevated: "#2a261e",
+  },
+  components: {
+    ...lightTheme.components,
+    Segmented: { itemSelectedBg: "#3a3326" },
+  },
+};
+
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 
 function subscribeReducedMotion(onChange: () => void) {
@@ -47,20 +74,29 @@ function usePrefersReducedMotion() {
   );
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+function ThemedApp({ children }: { children: ReactNode }) {
+  const { theme } = useTheme();
   const reducedMotion = usePrefersReducedMotion();
-  const themeConfig = useMemo<ThemeConfig>(
-    () => ({ ...theme, token: { ...theme.token, motion: !reducedMotion } }),
-    [reducedMotion],
-  );
+  const themeConfig = useMemo<ThemeConfig>(() => {
+    const base = theme === "dark" ? darkTheme : lightTheme;
+    return { ...base, token: { ...base.token, motion: !reducedMotion } };
+  }, [reducedMotion, theme]);
 
   return (
+    <ConfigProvider locale={viVN} theme={themeConfig}>
+      <App>
+        <AuthProvider>{children}</AuthProvider>
+      </App>
+    </ConfigProvider>
+  );
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
     <StyleProvider layer>
-      <ConfigProvider locale={viVN} theme={themeConfig}>
-        <App>
-          <AuthProvider>{children}</AuthProvider>
-        </App>
-      </ConfigProvider>
+      <ThemeProvider>
+        <ThemedApp>{children}</ThemedApp>
+      </ThemeProvider>
     </StyleProvider>
   );
 }

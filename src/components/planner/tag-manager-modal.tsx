@@ -6,13 +6,13 @@ import {
   Button,
   Form,
   Input,
-  Empty,
   Modal,
   Popconfirm,
   Space,
   Typography,
 } from "antd";
 import { useState } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import type { PlannerTag } from "@/lib/firebase/models";
 import { createTag, deleteTag, updateTag } from "@/lib/firebase/tags";
@@ -74,7 +74,10 @@ export function TagManagerModal({
       <div className="tag-manager-layout">
         <div>
           <Text className="mb-3 block font-medium">Bộ sưu tập của bạn · {customTags.length}</Text>
-          {!customTags.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Bạn chưa tạo tag riêng" /> : null}
+          {!customTags.length ? (
+            <EmptyState compact art="tags" title="Chưa có tag riêng"
+              description="Đặt tên cho tag đầu tiên ở khung bên cạnh để gom kế hoạch theo chủ đề." />
+          ) : null}
           <ul className="tag-manager-list">
             {customTags.map((tag) => (
               <li key={tag.id}>

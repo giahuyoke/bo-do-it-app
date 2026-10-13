@@ -1,9 +1,10 @@
 "use client";
 
 import { PlusOutlined } from "@ant-design/icons";
-import { Empty, Skeleton } from "antd";
+import { Skeleton } from "antd";
 import type { Dayjs } from "dayjs";
 import { DayItem } from "@/components/dashboard/day-item";
+import { EmptyState } from "@/components/empty-state";
 import type { PlannerItem } from "@/lib/planner";
 import { todaySections } from "@/lib/today";
 
@@ -49,7 +50,13 @@ export function TodayPanel({ items, today, search, loading, onAdd, onEdit, onTog
             </div>
           ) : null}
           {empty ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={search.trim() ? "Không tìm thấy công việc phù hợp hôm nay." : "Hôm nay chưa có kế hoạch. Thêm việc đầu tiên nhé!"} />
+            search.trim() ? (
+              <EmptyState art="search" title="Không tìm thấy việc phù hợp"
+                description={<>Hôm nay không có kế hoạch nào khớp với “{search.trim()}”.</>} />
+            ) : (
+              <EmptyState art="tea" title="Hôm nay thảnh thơi"
+                description="Chưa có kế hoạch nào. Pha một tách trà, rồi thêm việc đầu tiên khi bạn sẵn sàng." />
+            )
           ) : groups.map((group) => group.items.length ? (
             <section key={group.id} className="today-group" aria-labelledby={`today-${group.id}`}>
               <h2 id={`today-${group.id}`}>{group.title}<span>{group.items.length}</span></h2>
