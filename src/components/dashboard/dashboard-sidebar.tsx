@@ -10,11 +10,13 @@ import {
   ForwardOutlined,
   SettingOutlined,
   TagsOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 import { Drawer, Dropdown } from "antd";
 import dayjs from "dayjs";
 import { useState, type ReactNode } from "react";
 import { ItemTitle } from "@/components/planner/item-title";
+import { ToolIcon } from "@/components/tools/tool-icon";
 import { useThemeMenuItems } from "@/components/theme-menu";
 import { useTheme } from "@/components/theme-provider";
 import { itemPalette } from "@/lib/color-contrast";
@@ -23,6 +25,7 @@ import {
   plannerItemDate,
   type PlannerItem,
 } from "@/lib/planner";
+import { toolInfo, type ToolKey } from "@/lib/tools/registry";
 
 export type DashboardSection =
   | "planner"
@@ -31,7 +34,8 @@ export type DashboardSection =
   | "upcoming"
   | "tasks"
   | "completed"
-  | "tags";
+  | "tags"
+  | "tools";
 
 export interface DashboardCounts {
   /** Lines left on the notes checklist. */
@@ -47,8 +51,13 @@ interface NavigationProps {
   counts: DashboardCounts;
   /** Open tasks due in the next 7 days, sorted, for the "Nhiệm vụ" preview. */
   pendingTasks: PlannerItem[];
+  /** Tools pinned to the sidebar, in pin order. */
+  pinnedTools: readonly ToolKey[];
+  /** The open tool, or null on the tools list (or outside "Công cụ"). */
+  activeTool: ToolKey | null;
   onNavigate: (section: DashboardSection) => void;
   onOpenItem: (item: PlannerItem) => void;
+  onOpenTool: (tool: ToolKey) => void;
 }
 
 interface NavigationEntry {
@@ -106,7 +115,10 @@ const navigationGroups: Array<{ label: string; entries: NavigationEntry[] }> = [
   },
   {
     label: "",
-    entries: [{ key: "tags", icon: <TagsOutlined />, label: "Quản lý tag" }],
+    entries: [
+      { key: "tools", icon: <ToolOutlined />, label: "Công cụ" },
+      { key: "tags", icon: <TagsOutlined />, label: "Quản lý tag" },
+    ],
   },
 ];
 
@@ -157,15 +169,52 @@ function TaskPreview({
   );
 }
 
+function PinnedTools({
+  tools,
+  activeTool,
+  onOpenTool,
+}: {
+  tools: readonly ToolKey[];
+  activeTool: ToolKey | null;
+  onOpenTool: (tool: ToolKey) => void;
+}) {
+  return (
+    <ul className="planner-task-preview planner-pinned-tools" id="planner-pinned-tools">
+      {tools.map((tool) => (
+        <li key={tool}>
+          <button
+            type="button"
+            className={tool === activeTool ? "is-active" : ""}
+            aria-current={tool === activeTool ? "page" : undefined}
+            onClick={() => onOpenTool(tool)}
+          >
+            <ToolIcon tool={tool} />
+            <span className="truncate">{toolInfo(tool).name}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DashboardNavigation({
   activeSection,
   counts,
   pendingTasks,
+  pinnedTools,
+  activeTool,
   onNavigate,
   onOpenItem,
+  onOpenTool,
 }: NavigationProps) {
   // Open by default so pending tasks are visible at a glance.
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [toolsExpanded, setToolsExpanded] = useState(true);
+  // An open pinned tool is highlighted in the submenu instead of its parent.
+  const openPinnedTool =
+    activeSection === "tools" && activeTool && pinnedTools.includes(activeTool)
+      ? activeTool
+      : null;
 
   return (
     <nav className="planner-side-nav" aria-label="Điều hướng chính">
@@ -175,12 +224,14 @@ function DashboardNavigation({
             <span className="planner-nav-heading">{group.label}</span>
           ) : null}
           {group.entries.map((entry) => {
+            const active =
+              entry.key === activeSection && !(entry.key === "tools" && openPinnedTool);
             const button = (
               <button
                 type="button"
                 key={entry.key}
-                className={entry.key === activeSection ? "is-active" : ""}
-                aria-current={entry.key === activeSection ? "page" : undefined}
+                className={active ? "is-active" : ""}
+                aria-current={active ? "page" : undefined}
                 onClick={() => onNavigate(entry.key)}
               >
                 {entry.icon}
@@ -192,6 +243,34 @@ function DashboardNavigation({
                 ) : null}
               </button>
             );
+            if (entry.key === "tools" && pinnedTools.length) {
+              return (
+                <div key={entry.key} className="planner-nav-expandable">
+                  <div className="planner-nav-row">
+                    {button}
+                    <button
+                      type="button"
+                      className={`planner-nav-toggle ${toolsExpanded ? "is-open" : ""}`}
+                      aria-expanded={toolsExpanded}
+                      aria-controls="planner-pinned-tools"
+                      aria-label={
+                        toolsExpanded ? "Thu gọn công cụ đã ghim" : "Xem công cụ đã ghim"
+                      }
+                      onClick={() => setToolsExpanded((open) => !open)}
+                    >
+                      <DownOutlined />
+                    </button>
+                  </div>
+                  {toolsExpanded ? (
+                    <PinnedTools
+                      tools={pinnedTools}
+                      activeTool={openPinnedTool}
+                      onOpenTool={onOpenTool}
+                    />
+                  ) : null}
+                </div>
+              );
+            }
             if (entry.key !== "tasks") return button;
 
             return (
@@ -260,13 +339,7 @@ export function MobileBottomNavigation({
   );
 }
 
-export function DashboardSidebar({
-  activeSection,
-  counts,
-  pendingTasks,
-  onNavigate,
-  onOpenItem,
-}: NavigationProps) {
+export function DashboardSidebar(props: NavigationProps) {
   const themeItems = useThemeMenuItems();
   return (
     <aside className="planner-sidebar">
@@ -278,13 +351,7 @@ export function DashboardSidebar({
         </div>
       </div>
 
-      <DashboardNavigation
-        activeSection={activeSection}
-        counts={counts}
-        pendingTasks={pendingTasks}
-        onNavigate={onNavigate}
-        onOpenItem={onOpenItem}
-      />
+      <DashboardNavigation {...props} />
 
       <div className="planner-sidebar-card">
         <span className="planner-sidebar-card-icon">✦</span>
@@ -307,13 +374,10 @@ interface MobileDashboardNavigationProps extends NavigationProps {
 }
 
 export function MobileDashboardNavigation({
-  activeSection,
-  counts,
-  pendingTasks,
   open,
   onClose,
-  onNavigate,
   onOpenItem,
+  ...navigation
 }: MobileDashboardNavigationProps) {
   return (
     <Drawer
@@ -324,10 +388,7 @@ export function MobileDashboardNavigation({
       onClose={onClose}
     >
       <DashboardNavigation
-        activeSection={activeSection}
-        counts={counts}
-        pendingTasks={pendingTasks}
-        onNavigate={onNavigate}
+        {...navigation}
         onOpenItem={(item) => {
           onClose();
           onOpenItem(item);

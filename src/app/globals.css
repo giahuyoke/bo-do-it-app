@@ -2348,6 +2348,590 @@ a:focus-visible {
   }
 }
 
+/* Tools: a grid of small utilities; pinned ones also sit under "Công cụ". */
+.planner-side-nav .planner-pinned-tools button {
+  gap: 9px;
+}
+.planner-side-nav .planner-pinned-tools button .anticon {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.planner-side-nav .planner-pinned-tools button.is-active {
+  color: var(--accent-ink);
+  font-weight: 600;
+  background: var(--accent-soft);
+}
+.planner-side-nav .planner-pinned-tools button.is-active .anticon {
+  color: var(--accent-ink);
+}
+.tools-page {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tool-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon name pin"
+    "icon text text";
+  column-gap: 14px;
+  row-gap: 4px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 8px 28px #80632b0a;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.tool-card:hover,
+.tool-card:focus-within {
+  border-color: var(--border-warm);
+  box-shadow: 0 12px 30px #80632b14;
+  transform: translateY(-1px);
+}
+.tool-card .tool-icon {
+  grid-area: icon;
+}
+.tool-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  font-size: 19px;
+}
+.tool-card-open {
+  grid-area: name;
+  align-self: center;
+  padding: 0;
+  border: 0;
+  color: var(--text-strong);
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+/* The whole card opens the tool; the pin button sits above this layer. */
+.tool-card-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.tool-card-open:focus-visible {
+  outline: none;
+}
+.tool-card:has(.tool-card-open:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tool-card p {
+  grid-area: text;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.tool-card .tool-pin {
+  grid-area: pin;
+  margin: -6px -6px 0 0;
+}
+.tool-pin {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text-faint);
+  background: transparent;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+.tool-pin:hover {
+  color: var(--accent-ink);
+  background: var(--hover-soft);
+}
+.tool-pin.is-pinned {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.tool-pin:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tool-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 4px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tool-back:hover {
+  color: var(--accent-ink);
+  background: var(--hover-soft);
+}
+.tool-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+.tool-header h1 {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 500;
+  letter-spacing: -0.6px;
+}
+.tool-header p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Shared building blocks inside a tool view. */
+.tool-sheet {
+  display: grid;
+  gap: 18px;
+  max-width: 860px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.tool-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.tool-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.tool-column-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-strong);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tool-column-heading > span {
+  color: var(--text-faint);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.tool-sheet .tool-textarea,
+.tool-column .tool-textarea {
+  flex: 1;
+  min-height: 320px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.tool-fields {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.tool-field {
+  display: grid;
+  gap: 6px;
+}
+.tool-field > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tool-field .ant-picker,
+.tool-field .ant-input-number {
+  width: 100%;
+}
+.tool-field-error {
+  color: var(--danger-ink);
+  font-size: 12px;
+}
+.tool-placeholder {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 160px;
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--border-warm);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tool-result {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+}
+.tool-result-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tool-result-value {
+  color: var(--text-strong);
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.tool-result-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tool-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.tool-stat {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+.tool-result .tool-stat {
+  background: var(--surface);
+}
+.tool-stat strong {
+  color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tool-stat span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Timer */
+.timer-tool {
+  max-width: 560px;
+}
+.timer-panel {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+.timer-display {
+  color: var(--text-strong);
+  font-size: clamp(44px, 9vw, 72px);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+}
+.timer-label {
+  margin: -8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.timer-progress {
+  width: 100%;
+  margin: 0;
+}
+.timer-actions,
+.timer-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.timer-duration-fields {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.timer-duration-fields label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.timer-duration-fields .ant-input-number {
+  width: 76px;
+}
+.timer-deadline {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.timer-deadline .ant-picker {
+  min-width: 240px;
+}
+.timer-finished {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border-radius: 14px;
+  color: var(--warning-ink);
+  background: var(--warning-bg);
+  font-weight: 600;
+}
+.timer-finished span {
+  font-size: 12px;
+  font-weight: 400;
+}
+.timer-laps {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.timer-laps th,
+.timer-laps td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+.timer-laps th:first-child,
+.timer-laps td:first-child {
+  text-align: left;
+}
+.timer-laps th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Date calculator */
+.date-calc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.date-calc-amount {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.date-calc-amount .ant-input-number {
+  width: 110px;
+}
+.date-calc-unit {
+  min-width: 96px;
+}
+
+/* Random picker */
+.random-picked {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: picked;
+}
+.random-picked li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: var(--text-strong);
+  background: var(--accent-soft);
+  font-weight: 600;
+  counter-increment: picked;
+}
+.random-picked li::before {
+  content: counter(picked);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent-ink);
+  background: var(--surface-translucent);
+  font-size: 12px;
+}
+.random-groups {
+  display: grid;
+  gap: 10px;
+}
+.random-group {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+.random-group strong {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-strong);
+  font-size: 13px;
+}
+.random-group strong span {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+.random-group ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.random-group li {
+  padding: 3px 10px;
+  border-radius: 99px;
+  color: var(--foreground);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+/* Line tools */
+.line-actions {
+  display: grid;
+  gap: 8px;
+}
+.line-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-strong);
+  background: var(--surface-warm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+.line-action small {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+.line-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--hover-soft);
+}
+.line-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.line-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.line-affix {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-warm);
+}
+.line-affix small {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.line-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.line-steps li {
+  padding: 3px 10px;
+  border-radius: 99px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+.line-steps li + li::before {
+  content: "→ ";
+  color: var(--text-faint);
+}
+
+@media (max-width: 1180px) {
+  .tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tool-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .tool-columns > .tool-column:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 768px) {
+  .tool-grid,
+  .tool-columns,
+  .date-calc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tool-sheet .tool-textarea,
+  .tool-column .tool-textarea {
+    min-height: 200px;
+  }
+  .tool-sheet,
+  .tool-column {
+    padding: 14px;
+  }
+}
+
 /* List the app's own animated elements only. A wildcard override also reaches
    Ant Design popups, whose placement is measured mid-animation, and throws
    them off-screen. Ant Design's motion is turned off via the `motion` token
@@ -2362,7 +2946,14 @@ a:focus-visible {
   .tag-color-custom,
   .planner-stats button,
   .planner-cell-add,
-  .planner-nav-toggle .anticon {
+  .planner-nav-toggle .anticon,
+  .tool-card,
+  .tool-pin,
+  .line-action {
     transition: none;
+  }
+  .tool-card:hover,
+  .tool-card:focus-within {
+    transform: none;
   }
 }

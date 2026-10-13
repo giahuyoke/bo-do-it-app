@@ -17,7 +17,7 @@ export const initialStopwatch: StopwatchState = {
 };
 
 export function stopwatchElapsed(state: StopwatchState, now: number) {
-  return state.accumulated + (state.startedAt === null ? 0 : now - state.startedAt);
+  return state.accumulated + (state.startedAt === null ? 0 : Math.max(0, now - state.startedAt));
 }
 
 export function startStopwatch(state: StopwatchState, now: number): StopwatchState {
@@ -51,7 +51,8 @@ export function createCountdown(totalMs: number): CountdownState {
 }
 
 export function countdownRemaining(state: CountdownState, now: number) {
-  return state.endsAt === null ? state.remainingMs : Math.max(0, state.endsAt - now);
+  if (state.endsAt === null) return state.remainingMs;
+  return Math.min(state.totalMs, Math.max(0, state.endsAt - now));
 }
 
 export function startCountdown(state: CountdownState, now: number): CountdownState {

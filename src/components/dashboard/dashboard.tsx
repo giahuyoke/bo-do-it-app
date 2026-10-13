@@ -27,6 +27,9 @@ import { ClassScheduleModal } from "@/components/planner/class-schedule-modal";
 import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
 import { NotesPage } from "@/components/notes/notes-page";
+import { CountdownAlarm } from "@/components/tools/countdown-alarm";
+import { ToolsPage } from "@/components/tools/tools-page";
+import { usePinnedTools } from "@/hooks/use-pinned-tools";
 import { usePlannerDashboard } from "@/hooks/use-planner-dashboard";
 import { useRealtimeChecklist } from "@/hooks/use-realtime-notes";
 import type { NoteItem } from "@/lib/firebase/models";
@@ -34,6 +37,7 @@ import { removeChecklistItem } from "@/lib/firebase/notes";
 import type { PlannerItem } from "@/lib/planner";
 import { setTaskCompleted } from "@/lib/firebase/tasks";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
+import type { ToolKey } from "@/lib/tools/registry";
 
 const initialDrawerState: PlannerDrawerState = {
   open: false,
@@ -56,6 +60,8 @@ export function Dashboard() {
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [classScheduleOpen, setClassScheduleOpen] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolKey | null>(null);
+  const pinnedTools = usePinnedTools();
 
   const planner = usePlannerDashboard({
     userId: user?.uid ?? "",
@@ -92,6 +98,7 @@ export function Dashboard() {
   const navigate = (section: DashboardSection) => {
     setActiveSection(section);
     setFilter("all");
+    setActiveTool(null);
     closeMobileNavigation();
 
     if (section === "today") {
@@ -120,6 +127,12 @@ export function Dashboard() {
       return;
     }
 
+  };
+
+  const openTool = (tool: ToolKey | null) => {
+    setActiveSection("tools");
+    setActiveTool(tool);
+    closeMobileNavigation();
   };
 
   const openCreate = (type: PlannerItemType, date = selectedDate) => {
@@ -172,17 +185,23 @@ export function Dashboard() {
         activeSection={activeSection}
         counts={counts}
         pendingTasks={planner.pendingTasks}
+        pinnedTools={pinnedTools.pinned}
+        activeTool={activeTool}
         onNavigate={navigate}
         onOpenItem={openEdit}
+        onOpenTool={openTool}
       />
       <MobileDashboardNavigation
         activeSection={activeSection}
         counts={counts}
         pendingTasks={planner.pendingTasks}
+        pinnedTools={pinnedTools.pinned}
+        activeTool={activeTool}
         open={mobileNavigationOpen}
         onClose={closeMobileNavigation}
         onNavigate={navigate}
         onOpenItem={openEdit}
+        onOpenTool={openTool}
       />
 
       <main className="planner-main">
@@ -213,6 +232,13 @@ export function Dashboard() {
             error={checklist.error}
             search={search}
             onConvertItem={convertNoteItem}
+          />
+        ) : activeSection === "tools" ? (
+          <ToolsPage
+            activeTool={activeTool}
+            pinned={pinnedTools.pinned}
+            onOpenTool={openTool}
+            onTogglePin={pinnedTools.togglePin}
           />
         ) : activeSection === "tags" ? (
           <TagManagerModal userId={user.uid} open embedded
@@ -287,6 +313,7 @@ export function Dashboard() {
         </>}
       </main>
       <MobileBottomNavigation activeSection={activeSection} onNavigate={navigate} />
+      <CountdownAlarm />
 
       <QuickAddDrawer
         userId={user.uid}
