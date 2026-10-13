@@ -73,6 +73,8 @@ export function Dashboard() {
     notes: checklist.items.length,
   };
 
+  const upcomingWindow = activeSection === "upcoming" && view === "agenda";
+
   const closeMobileNavigation = () => setMobileNavigationOpen(false);
 
   const selectDate = (date: Dayjs) => {
@@ -111,6 +113,8 @@ export function Dashboard() {
     }
 
     if (section === "tasks" || section === "completed") {
+      // The list follows the toolbar's month, so open on the current one.
+      setVisibleDate(dayjs());
       setView("agenda");
       setFilter("task");
       return;
@@ -232,6 +236,12 @@ export function Dashboard() {
               visibleDate={visibleDate}
               view={view}
               filter={filter}
+              // "Sắp tới" is a rolling 7-day window: paging months means nothing there.
+              fixedPeriod={
+                upcomingWindow
+                  ? { label: "7 ngày tới", detail: `${dayjs().add(1, "day").format("DD/MM")} – ${dayjs().add(7, "day").format("DD/MM")}` }
+                  : undefined
+              }
               onChangeDate={setVisibleDate}
               onChangeView={setView}
               onChangeFilter={changeFilter}
@@ -255,9 +265,9 @@ export function Dashboard() {
                 onEditItem={openEdit}
                 onToggleTask={toggleTask}
                 onAddItem={(date) => openCreate("event", date)}
-                // The calendar's own list is browsed month by month; the
-                // sidebar sections (upcoming, tasks…) list everything they match.
-                agendaScope={activeSection === "planner" ? "month" : "all"}
+                // Lists follow the month in the toolbar, except "Sắp tới",
+                // whose section filter already limits it to the next 7 days.
+                agendaScope={upcomingWindow ? "all" : "month"}
               />
             )}
           </section>

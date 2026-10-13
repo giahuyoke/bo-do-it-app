@@ -14,6 +14,8 @@ interface CalendarToolbarProps {
   onChangeView: (view: PlannerView) => void;
   onChangeFilter: (filter: ItemFilter) => void;
   onToday: () => void;
+  /** Replaces the month/week pager when the list covers a fixed span. */
+  fixedPeriod?: { label: string; detail: string };
 }
 
 function weekRange(date: Dayjs) {
@@ -46,36 +48,44 @@ export function CalendarToolbar({
   onChangeView,
   onChangeFilter,
   onToday,
+  fixedPeriod,
 }: CalendarToolbarProps) {
   const navigationUnit = view === "week" ? "week" : "month";
 
   return (
     <div className="planner-calendar-toolbar">
-      <div className="flex items-center gap-2">
-        <Tooltip title={view === "week" ? "Tuần trước" : "Tháng trước"}>
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() =>
-              onChangeDate(visibleDate.subtract(1, navigationUnit))
-            }
-          />
-        </Tooltip>
+      {fixedPeriod ? (
         <div className="planner-month-label">
-          <strong>{periodLabel(visibleDate, view)}</strong>
-          <span>{periodYear(visibleDate, view)}</span>
+          <strong>{fixedPeriod.label}</strong>
+          <span>{fixedPeriod.detail}</span>
         </div>
-        <Tooltip title={view === "week" ? "Tuần sau" : "Tháng sau"}>
-          <Button
-            type="text"
-            icon={<RightOutlined />}
-            onClick={() => onChangeDate(visibleDate.add(1, navigationUnit))}
-          />
-        </Tooltip>
-        <Button className="planner-today-button" onClick={onToday}>
-          Hôm nay
-        </Button>
-      </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Tooltip title={view === "week" ? "Tuần trước" : "Tháng trước"}>
+            <Button
+              type="text"
+              icon={<LeftOutlined />}
+              onClick={() =>
+                onChangeDate(visibleDate.subtract(1, navigationUnit))
+              }
+            />
+          </Tooltip>
+          <div className="planner-month-label">
+            <strong>{periodLabel(visibleDate, view)}</strong>
+            <span>{periodYear(visibleDate, view)}</span>
+          </div>
+          <Tooltip title={view === "week" ? "Tuần sau" : "Tháng sau"}>
+            <Button
+              type="text"
+              icon={<RightOutlined />}
+              onClick={() => onChangeDate(visibleDate.add(1, navigationUnit))}
+            />
+          </Tooltip>
+          <Button className="planner-today-button" onClick={onToday}>
+            Hôm nay
+          </Button>
+        </div>
+      )}
 
       <div className="planner-toolbar-controls">
         <Select<ItemFilter>
