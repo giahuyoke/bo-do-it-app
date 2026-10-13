@@ -11,6 +11,7 @@ import {
   Timestamp,
   updateDoc,
   writeBatch,
+  type DocumentReference,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
@@ -86,8 +87,11 @@ export function saveEventSeries(
   userId: string,
   existingId: string | null,
   inputs: EventInput[],
+  /** A plan of the other kind this one turns into; deleted in the same batch. */
+  replaces?: DocumentReference,
 ) {
   const batch = writeBatch(getFirestoreDb());
+  if (replaces) batch.delete(replaces);
   inputs.forEach((input, index) => {
     if (index === 0 && existingId) {
       batch.update(doc(eventsCollection(userId), existingId), {
@@ -103,6 +107,10 @@ export function saveEventSeries(
     });
   });
   return batch.commit();
+}
+
+export function eventRef(userId: string, eventId: string) {
+  return doc(eventsCollection(userId), eventId);
 }
 
 export function deleteEvent(userId: string, eventId: string) {

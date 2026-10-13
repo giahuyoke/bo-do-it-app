@@ -20,13 +20,13 @@ import type {
   PlannerFormItemType,
   PlannerFormValues,
 } from "@/components/planner/form/types";
-import { deleteEvent, saveEventSeries } from "@/lib/firebase/events";
+import { deleteEvent, eventRef, saveEventSeries } from "@/lib/firebase/events";
 import type {
   EventInput,
   PlannerTag,
   TaskInput,
 } from "@/lib/firebase/models";
-import { deleteTask, saveTaskSeries } from "@/lib/firebase/tasks";
+import { deleteTask, saveTaskSeries, taskRef } from "@/lib/firebase/tasks";
 import { defaultItemColor, type PlannerItem } from "@/lib/planner";
 
 interface QuickAddDrawerProps {
@@ -141,6 +141,14 @@ export function QuickAddDrawer({
     );
     // Extra rows are new copies: they start open, whatever the first row says.
     const isCopy = (index: number) => index > 0;
+    // Switching kind moves the plan to the other collection: the new document
+    // is written and the old one deleted in one batch.
+    const converting = item !== null && item.kind !== values.type;
+    const replaces = converting
+      ? item.kind === "task"
+        ? taskRef(userId, item.data.id)
+        : eventRef(userId, item.data.id)
+      : undefined;
 
     try {
       if (!ranges.length) return;
@@ -156,7 +164,7 @@ export function QuickAddDrawer({
           status:
             !isCopy(index) && existing?.status === "in_progress" ? "in_progress" : "todo",
         }));
-        await saveTaskSeries(userId, existing?.id ?? null, taskInputs);
+        await saveTaskSeries(userId, existing?.id ?? null, taskInputs, replaces);
       } else {
         const existing = item?.kind === "event" ? item.data : null;
         const eventInputs = ranges.map((range, index): EventInput => ({
@@ -166,13 +174,15 @@ export function QuickAddDrawer({
           startAt: range.startAt,
           endAt: range.endAt,
         }));
-        await saveEventSeries(userId, existing?.id ?? null, eventInputs);
+        await saveEventSeries(userId, existing?.id ?? null, eventInputs, replaces);
       }
 
       if (!item) onCreated?.();
       const added = item ? ranges.length - 1 : ranges.length;
       void message.success(
-        item
+        converting
+          ? `Đã chuyển thành ${values.type === "task" ? "nhiệm vụ" : "lịch trình"}.`
+          : item
           ? added
             ? `Đã cập nhật và thêm ${added} kế hoạch mới.`
             : "Đã cập nhật kế hoạch."
@@ -273,7 +283,7 @@ export function QuickAddDrawer({
         requiredMark={false}
         onFinish={(values) => void submit(values)}
       >
-        <PlannerTypeField disabled={Boolean(item)} />
+        <PlannerTypeField originalType={item?.kind} />
 
         <Form.Item label="Nội dung" required>
           <Space.Compact className="w-full">

@@ -12,6 +12,7 @@ import {
   Timestamp,
   updateDoc,
   writeBatch,
+  type DocumentReference,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
@@ -93,14 +94,18 @@ export function updateTask(userId: string, taskId: string, input: TaskInput) {
 
 /**
  * Saves one task per date range in a single batch: the first input updates
- * `existingId` when given, every other input becomes a new task.
+ * `existingId` when given, every other input becomes a new task. Turning an
+ * event into a task passes the event as `replaces`, so the swap is atomic.
  */
 export function saveTaskSeries(
   userId: string,
   existingId: string | null,
   inputs: TaskInput[],
+  /** A plan of the other kind this one turns into; deleted in the same batch. */
+  replaces?: DocumentReference,
 ) {
   const batch = writeBatch(getFirestoreDb());
+  if (replaces) batch.delete(replaces);
   inputs.forEach((input, index) => {
     if (index === 0 && existingId) {
       batch.update(doc(tasksCollection(userId), existingId), {
@@ -116,6 +121,10 @@ export function saveTaskSeries(
     });
   });
   return batch.commit();
+}
+
+export function taskRef(userId: string, taskId: string) {
+  return doc(tasksCollection(userId), taskId);
 }
 
 export function deleteTask(userId: string, taskId: string) {
