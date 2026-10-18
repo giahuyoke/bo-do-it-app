@@ -24,6 +24,9 @@ rules_version = '2';
 //   title: string (0..200), before/after: map|null, count: int >= 1,
 //   at: timestamp (server time), expiresAt: timestamp (~30 days later, TTL field).
 //   Entries are append-only: never updated, deleted only by "Xóa nhật ký" or TTL.
+// users/{userId}/preferences/colors
+//   recent: list (0..8) of six-digit hex strings, newest first,
+//   updatedAt: timestamp. Per-entry shape is enforced by the client.
 // All documents are private to the authenticated user identified by {userId}.
 
 service cloud.firestore {
@@ -185,6 +188,14 @@ service cloud.firestore {
         && data.expiresAt < request.time + duration.value(31, 'd');
     }
 
+    function hasValidRecentColorsFields(data) {
+      return data.keys().hasAll(['recent', 'updatedAt'])
+        && data.keys().hasOnly(['recent', 'updatedAt'])
+        && data.recent is list
+        && data.recent.size() <= 8
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{userId}/tasks/{taskId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId)
@@ -273,6 +284,13 @@ service cloud.firestore {
 
       allow update: if false;
       allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/preferences/colors {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && hasValidRecentColorsFields(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
     }
 
     match /{document=**} {

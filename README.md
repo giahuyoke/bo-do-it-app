@@ -53,6 +53,7 @@ users/{uid}/events/{eventId}
 users/{uid}/tags/{tagId}
 users/{uid}/notes/{noteId}
 users/{uid}/history/{entryId}
+users/{uid}/preferences/colors   (màu tùy chỉnh dùng gần đây, tối đa 8)
 ```
 
 Rules chỉ cho phép người dùng đã đăng nhập đọc/ghi các subcollection thuộc UID

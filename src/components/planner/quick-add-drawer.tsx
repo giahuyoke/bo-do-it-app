@@ -13,6 +13,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { ItemColorButton } from "@/components/planner/form/item-color-button";
+import { useRecentColors } from "@/hooks/use-recent-colors";
 import { PlannerDetailsFields } from "@/components/planner/form/planner-details-fields";
 import { PlannerTypeField } from "@/components/planner/form/planner-type-field";
 import { ScheduleFields } from "@/components/planner/form/schedule-fields";
@@ -56,6 +57,7 @@ export function QuickAddDrawer({
 }: QuickAddDrawerProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<PlannerFormValues>();
+  const { recentColors, rememberColor } = useRecentColors(userId);
   const itemType = Form.useWatch("type", form) ?? initialType;
   const saveAndContinue = useRef(false);
   const savingRef = useRef(false);
@@ -177,6 +179,7 @@ export function QuickAddDrawer({
         await saveEventSeries(userId, existing?.id ?? null, eventInputs, replaces);
       }
 
+      rememberColor(values.color);
       if (!item) onCreated?.();
       const added = item ? ranges.length - 1 : ranges.length;
       void message.success(
@@ -298,7 +301,10 @@ export function QuickAddDrawer({
               <Input size="large" placeholder="Bạn dự định làm gì?" autoFocus />
             </Form.Item>
             <Form.Item name="color" noStyle>
-              <ItemColorButton fallbackColor={defaultItemColor(itemType)} />
+              <ItemColorButton
+                fallbackColor={defaultItemColor(itemType)}
+                recentColors={recentColors}
+              />
             </Form.Item>
           </Space.Compact>
         </Form.Item>

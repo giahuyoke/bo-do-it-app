@@ -875,6 +875,14 @@ select {
   font-weight: 400;
   line-height: 1;
 }
+.tag-color-recent {
+  display: grid;
+  gap: 6px;
+}
+.tag-color-recent-label {
+  color: var(--muted);
+  font-size: 11px;
+}
 .tag-color-value {
   min-width: 0;
   min-height: 34px;

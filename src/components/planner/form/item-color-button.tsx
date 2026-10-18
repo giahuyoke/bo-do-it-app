@@ -9,12 +9,14 @@ interface ItemColorButtonProps {
   onChange?: (value: string) => void;
   /** Shown while no color is picked, so the swatch matches the calendar. */
   fallbackColor: string;
+  recentColors?: readonly string[];
 }
 
 export function ItemColorButton({
   value,
   onChange,
   fallbackColor,
+  recentColors,
 }: ItemColorButtonProps) {
   const [open, setOpen] = useState(false);
   const color = value || fallbackColor;
@@ -27,7 +29,11 @@ export function ItemColorButton({
       placement="bottomRight"
       content={
         <div className="item-color-popover">
-          <NativeColorField value={color} onChange={onChange} />
+          <NativeColorField
+            value={color}
+            onChange={onChange}
+            recentColors={recentColors}
+          />
         </div>
       }
     >

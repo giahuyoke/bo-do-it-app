@@ -4,6 +4,7 @@ import { App, DatePicker, Form, Input, Modal, Space } from "antd";
 import type { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 import { ItemColorButton } from "@/components/planner/form/item-color-button";
+import { useRecentColors } from "@/hooks/use-recent-colors";
 import {
   classSessionDates,
   classWeekdays,
@@ -75,6 +76,7 @@ export function ClassScheduleModal({
 }: ClassScheduleModalProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<ClassScheduleValues>();
+  const { recentColors, rememberColor } = useRecentColors(userId);
   const [saving, setSaving] = useState(false);
   const range = Form.useWatch("range", form);
   const weekdays = Form.useWatch("weekdays", form);
@@ -108,6 +110,7 @@ export function ClassScheduleModal({
     );
     try {
       await saveEventSeries(userId, null, inputs);
+      rememberColor(values.color);
       void message.success(`Đã thêm ${inputs.length} buổi “${values.title.trim()}” vào lịch.`);
       onClose();
     } catch (error) {
@@ -164,7 +167,10 @@ export function ClassScheduleModal({
               <Input size="large" placeholder="Ví dụ: Lịch sử Đông Á" autoFocus />
             </Form.Item>
             <Form.Item name="color" noStyle>
-              <ItemColorButton fallbackColor={defaultItemColor("event")} />
+              <ItemColorButton
+                fallbackColor={defaultItemColor("event")}
+                recentColors={recentColors}
+              />
             </Form.Item>
           </Space.Compact>
         </Form.Item>
