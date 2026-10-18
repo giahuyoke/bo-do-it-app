@@ -58,18 +58,36 @@ users/{uid}/history/{entryId}
 Rules chỉ cho phép người dùng đã đăng nhập đọc/ghi các subcollection thuộc UID
 của chính họ, đồng thời kiểm tra kiểu dữ liệu, độ dài chuỗi, enum và timestamp.
 
-### Bật TTL cho nhật ký
+### Dọn nhật ký cũ
 
-Trang Lịch sử chỉ hiện 30 ngày gần nhất. Để Firestore tự xóa bản ghi cũ, bật
-TTL policy một lần cho mỗi project (cần quyền trên Google Cloud):
+Trang Lịch sử chỉ hiện 30 ngày gần nhất. Bản ghi cũ hơn được xóa bằng Vercel
+Cron: mỗi Chủ nhật 20:00 UTC (3:00 sáng thứ Hai giờ Việt Nam), Vercel gọi
+`/api/cron/cleanup-history`. Route này dùng `firebase-admin` để xóa mọi doc
+`history` có `at` cũ hơn 30 ngày. Cách này chạy được trên gói Spark, không cần
+bật billing như Firestore TTL.
+
+Thiết lập một lần:
+
+1. Firebase Console > Project settings > Service accounts > Generate new private
+   key. Không commit file JSON này.
+2. Trong Vercel > Project > Settings > Environment Variables (Production), thêm:
+   - `FIREBASE_SERVICE_ACCOUNT`: toàn bộ nội dung file JSON.
+   - `CRON_SECRET`: chuỗi ngẫu nhiên, ví dụ từ `openssl rand -hex 32`.
+3. Deploy index collection group cho trường `at`:
 
 ```bash
-gcloud firestore fields ttls update expiresAt --collection-group=history --enable-ttl --project <project-id>
+npx -y firebase-tools@latest deploy --only firestore:indexes --project <project-id>
 ```
 
-Hoặc vào Firebase Console > Firestore > TTL, tạo policy cho collection group
-`history`, trường `expiresAt`. TTL có thể dọn trễ tới khoảng 24 giờ. App vẫn
-lọc theo `at`, nên bản ghi quá hạn không hiện ra.
+Chạy thử bằng tay (cron chỉ tự chạy trên bản production):
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/cleanup-history
+```
+
+Kết quả trả về `deleted` (số doc đã xóa) và `done` (`false` nghĩa là còn sót,
+lần chạy sau sẽ dọn tiếp). App vẫn lọc theo `at`, nên bản ghi quá hạn chưa xóa
+cũng không hiện ra.
 
 ## Cấu trúc chính
 
@@ -79,6 +97,7 @@ src/
     globals.css       # Tailwind CSS và thứ tự CSS layer
     layout.tsx        # Layout gốc, metadata và Ant Design SSR registry
     page.tsx          # Auth gate và dashboard
+    api/cron/         # Route cho Vercel Cron (dọn lịch sử cũ)
   components/
     auth/             # Google Sign-In và trạng thái đăng nhập
     dashboard/        # Shell, sidebar, topbar, toolbar và panel trong ngày
@@ -87,7 +106,7 @@ src/
     tasks/            # CRUD công việc
     providers.tsx     # Ant Design theme, locale và Auth context
   hooks/              # Firestore listeners và logic tổng hợp dashboard
-  lib/firebase/       # Firebase client, models và CRUD services
+  lib/firebase/       # Firebase client, models và CRUD services; admin.ts chỉ dùng phía server
 ```
 
 Alias `@/*` trỏ tới `src/*`.
