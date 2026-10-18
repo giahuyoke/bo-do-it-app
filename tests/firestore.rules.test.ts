@@ -402,4 +402,35 @@ describe("History log writes", () => {
       before: { name: "Học tập", color: "#78c6a3" },
     });
   });
+
+  test("ghi chú: thêm, sửa, tích, hoàn tác; sửa thành rỗng là xóa", async () => {
+    const milk = newNoteItem("Sữa tươi");
+    const eggs = newNoteItem("Trứng");
+    await addChecklistItems("alice", [milk, eggs]);
+    await updateChecklistItem("alice", milk.id, "Sữa tươi");
+    await updateChecklistItem("alice", milk.id, "Sữa không đường");
+    const removed = await removeChecklistItem("alice", milk.id);
+    await restoreChecklistItem("alice", removed!.item, removed!.index);
+    await updateChecklistItem("alice", eggs.id, "   ");
+
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "delete", "restore", "update"]);
+    expect(entries.find((entry) => entry.action === "create")).toMatchObject({
+      entity: "noteItem",
+      entityId: milk.id,
+      title: "Sữa tươi",
+      count: 2,
+    });
+    expect(entries.find((entry) => entry.action === "update")).toMatchObject({
+      before: { text: "Sữa tươi" },
+      after: { text: "Sữa không đường" },
+    });
+    const deletions = entries.filter((entry) => entry.action === "delete");
+    expect(deletions.map((entry) => entry.before)).toEqual(
+      expect.arrayContaining([
+        { id: milk.id, text: "Sữa không đường", index: 0 },
+        { id: eggs.id, text: "Trứng", index: 1 },
+      ]),
+    );
+  });
 });
