@@ -346,20 +346,22 @@ export function DashboardSidebar(props: NavigationProps) {
   const themeItems = useThemeMenuItems();
   return (
     <aside className="planner-sidebar">
-      <div className="planner-brand">
-        <span className="planner-logo">B</span>
-        <div>
-          <strong>Bo do it</strong>
-          <span>For my wife</span>
+      <div className="planner-sidebar-scroll">
+        <div className="planner-brand">
+          <span className="planner-logo">B</span>
+          <div>
+            <strong>Bo do it</strong>
+            <span>For my wife</span>
+          </div>
         </div>
-      </div>
 
-      <DashboardNavigation {...props} />
+        <DashboardNavigation {...props} />
 
-      <div className="planner-sidebar-card">
-        <span className="planner-sidebar-card-icon">✦</span>
-        <strong>Một ngày thật nhẹ</strong>
-        <p>Chọn ba việc quan trọng nhất và bắt đầu từ việc nhỏ.</p>
+        <div className="planner-sidebar-card">
+          <span className="planner-sidebar-card-icon">✦</span>
+          <strong>Một ngày thật nhẹ</strong>
+          <p>Chọn ba việc quan trọng nhất và bắt đầu từ việc nhỏ.</p>
+        </div>
       </div>
 
       <Dropdown trigger={["click"]} placement="topLeft" menu={{ items: themeItems }}>
