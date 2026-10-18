@@ -67,15 +67,15 @@ Có `before` thì mới có thể khôi phục. Chỉ dòng `delete` mới có n
 
 ## Ghi nhật ký
 
-Module mới `src/lib/firebase/history.ts` có hàm `addHistory(batchOrTransaction, userId, entry)`. Hàm này gắn thêm một lệnh `set` vào batch/transaction đang có, tự điền `at` và `expiresAt`.
+Module mới `src/lib/firebase/history.ts` có hàm `historyWrite(userId, entry)`. Hàm này trả về `{ ref, data }` (đã điền `at` và `expiresAt`) để caller `set` vào batch/transaction đang có. Task, event và tag dùng chung `saveLoggedSeries`/`deleteLogged` trong `src/lib/firebase/logged-writes.ts`.
 
 | Hàm hiện có | Thay đổi |
 |---|---|
-| `createTask`, `createEvent`, `createTag` | Đổi `addDoc` sang batch: `set` mục mới + `addHistory(create)` |
-| `updateTask`, `updateEvent`, `updateTag` | Đổi sang transaction: đọc payload cũ, `update`, `addHistory(update)` với `before`/`after`. Nếu payload không đổi gì thì không ghi nhật ký |
+| `createTask`, `createEvent`, `createTag` | Đổi `addDoc` sang batch: `set` mục mới + nhật ký `create` |
+| `updateTask`, `updateEvent`, `updateTag` | Đổi sang transaction: đọc payload cũ, `update`, nhật ký `update` với `before`/`after`. Nếu payload không đổi gì thì không ghi nhật ký |
 | `saveTaskSeries`, `saveEventSeries` | Mục đầu đã có thì ghi `update` như trên (cần đọc mục cũ nên chuyển sang transaction). Các mục mới được gom thành **một** dòng `create` với `count` = số mục mới. Có `replaces` (đổi kiểu) thì ghi một dòng `convert` thay cho `delete` + `create` |
-| `setTaskCompleted` | Thêm `addHistory(complete \| reopen)` vào transaction sẵn có |
-| `deleteTask`, `deleteEvent`, `deleteTag` | Đổi sang transaction: đọc mục, `delete`, `addHistory(delete)` với `before`. Mục không còn tồn tại thì báo lỗi như `setTaskCompleted` |
+| `setTaskCompleted` | Thêm nhật ký `complete` \| `reopen` vào transaction sẵn có, chỉ khi trạng thái thật sự đổi |
+| `deleteTask`, `deleteEvent`, `deleteTag` | Đổi sang transaction: đọc mục, `delete`, nhật ký `delete` với `before`. Mục không còn tồn tại thì báo lỗi như `setTaskCompleted` |
 | `addChecklistItems` | Ghi một dòng `create`, `count` = số dòng thêm được, `title` = dòng đầu |
 | `updateChecklistItem` | Ghi `update` nếu nội dung đổi |
 | `removeChecklistItem` | Ghi `delete` với `before = { id, text, index }` |
@@ -89,7 +89,7 @@ Batch của Firestore giới hạn 500 thao tác. Nhờ gom tạo hàng loạt t
 
 `restoreFromHistory(userId, entry)` trong `src/lib/firebase/history.ts`:
 
-- `task` / `event` / `tag`: `set` lại tài liệu **với đúng `entityId` cũ** từ `before`, kèm `createdAt` = `updatedAt` = `serverTimestamp()` (rules yêu cầu `createdAt == request.time`). Ghi `addHistory(restore)` trong cùng batch.
+- `task` / `event` / `tag`: `set` lại tài liệu **với đúng `entityId` cũ** từ `before`, kèm `createdAt` = `updatedAt` = `serverTimestamp()` (rules yêu cầu `createdAt == request.time`). Ghi nhật ký `restore` trong cùng transaction.
   - Giữ id cũ nên tag được khôi phục tự gắn lại với các mục đang trỏ tới `tagId` đó.
   - Mục được khôi phục có `createdAt` mới. Chấp nhận điều này.
 - `noteItem`: gọi logic của `restoreChecklistItem` với `before.index`.
@@ -153,7 +153,7 @@ Không cần index mới: query chỉ `orderBy("at", "desc")` cộng điều ki�
 - **Bấm vào dòng `update`/`convert`** để mở danh sách thay đổi, mỗi trường một dòng `Nhãn: cũ → mới`. Các dòng khác không mở rộng được.
 - **Tải thêm**: mỗi trang 50 dòng (`limit(50)`, `startAfter`). Hết dữ liệu thì ẩn nút.
 - **Trống**: dùng `EmptyState` sẵn có, nội dung "Chưa có thay đổi nào trong 30 ngày qua."
-- **Xóa nhật ký**: nút trong menu `…` ở đầu trang, có `Popconfirm`. Xóa theo lô 100 bản ghi tới khi hết.
+- **Xóa nhật ký**: nút trong menu `…` ở đầu trang, mở hộp xác nhận (`modal.confirm`). Xóa theo lô 100 bản ghi tới khi hết.
 - Khôi phục thành công thì `message.success("Đã khôi phục …")`. Thất bại thì hiện `firebaseErrorMessage`.
 
 Danh sách không dùng realtime listener. Trang tải bằng `getDocs` khi mở, và tải lại sau mỗi lần khôi phục hoặc khi người dùng bấm làm mới. Như vậy tránh được một listener chạy thường trực.
@@ -182,7 +182,9 @@ Danh sách không dùng realtime listener. Trang tải bằng `getDocs` khi mở
 | File | Vai trò |
 |---|---|
 | `src/lib/history.ts` | Logic thuần, không phụ thuộc Firebase: kiểu `HistoryEntry`, `diffFields(before, after)`, `describeEntry(entry)`, `groupByDay(entries, today)`, `historyCutoff(now)` |
-| `src/lib/firebase/history.ts` | `addHistory`, `fetchHistoryPage`, `restoreFromHistory`, `clearHistory`, chuyển đổi từ document |
+| `src/lib/firebase/history.ts` | `historyWrite`, `toSnapshot`, `payloadChanged`, `fetchHistoryPage`, `clearHistory` |
+| `src/lib/firebase/logged-writes.ts` | `saveLoggedSeries`, `deleteLogged`: ghi task/event/tag kèm nhật ký |
+| `src/lib/firebase/restore.ts` | `restoreFromHistory` (tách riêng để tránh import vòng) |
 | `src/lib/firebase/{tasks,events,tags,notes}.ts` | Ghi nhật ký như bảng ở mục "Ghi nhật ký" |
 | `src/hooks/use-history.ts` | Phân trang, lọc, trạng thái tải/lỗi, khôi phục |
 | `src/components/history/history-page.tsx` | Trang Lịch sử |
