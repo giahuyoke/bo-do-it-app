@@ -79,18 +79,17 @@ export function setTaskCompleted(
     if (!snapshot.exists()) throw new Error("Công việc này không còn tồn tại.");
     const task = taskFromDocument({ ...snapshot.data(), id: snapshot.id });
     // Older tasks predate tags, endAt and reminders. Normalize them on update.
-    transaction.update(taskRef, {
-      ...taskPayload({ ...task, completed, status: completed ? "done" : "todo" }),
-      updatedAt: serverTimestamp(),
-    });
+    const payload = taskPayload({ ...task, completed, status: completed ? "done" : "todo" });
+    transaction.update(taskRef, { ...payload, updatedAt: serverTimestamp() });
     if ((task.status === "done") !== completed) {
+      // `after` carries the task so the history view can show which day it is on.
       const entry = historyWrite(userId, {
         action: completed ? "complete" : "reopen",
         entity: "task",
         entityId: taskId,
         title: task.title,
         before: null,
-        after: null,
+        after: payload,
       });
       transaction.set(entry.ref, entry.data);
     }

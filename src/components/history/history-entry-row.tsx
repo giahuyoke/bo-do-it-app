@@ -17,6 +17,7 @@ import {
   colorFields,
   describeEntry,
   diffFields,
+  entryDateLabel,
   type HistoryAction,
   type HistoryEntry,
 } from "@/lib/history";
@@ -54,13 +55,21 @@ export function HistoryEntryRow({ entry, restorable, restoring, onRestore }: His
     entry.action === "update" || entry.action === "convert"
       ? diffFields(entry.before, entry.after)
       : [];
+  const date = entryDateLabel(entry, dayjs());
 
   const summary = (
     <>
       <span className={`history-icon is-${entry.action}`} aria-hidden="true">
         {actionIcons[entry.action]}
       </span>
-      <span className="history-text">{describeEntry(entry)}</span>
+      <span className="history-text">
+        {describeEntry(entry)}
+        {date ? (
+          <span className="history-date" title="Ngày trên lịch">
+            {date}
+          </span>
+        ) : null}
+      </span>
       <time dateTime={entry.at.toISOString()}>{dayjs(entry.at).format("HH:mm")}</time>
     </>
   );

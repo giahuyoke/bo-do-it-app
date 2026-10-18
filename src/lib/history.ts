@@ -182,6 +182,35 @@ export function describeEntry(
   }
 }
 
+function snapshotDate(snapshot: HistorySnapshot | null) {
+  const value = snapshot ? normalize(snapshot).startAt : null;
+  return value instanceof Date ? value : null;
+}
+
+/**
+ * The calendar day the entry's plan sits on: "20/10", "12/10 → 14/10" when an
+ * edit moved it, or "từ 20/10" for a batch (the first item's day). The year
+ * shows only when it is not `today`'s. Null for tags, checklist lines,
+ * undated tasks and entries that carry no snapshot.
+ */
+export function entryDateLabel(
+  entry: Pick<HistoryEntry, "before" | "after" | "count">,
+  today: Dayjs,
+): string | null {
+  const format = (date: Date) => {
+    const day = dayjs(date);
+    return day.format(day.isSame(today, "year") ? "DD/MM" : "DD/MM/YYYY");
+  };
+  const before = snapshotDate(entry.before);
+  const after = snapshotDate(entry.after);
+  if (before && after && !dayjs(before).isSame(after, "day")) {
+    return `${format(before)} → ${format(after)}`;
+  }
+  const date = after ?? before;
+  if (!date) return null;
+  return entry.count > 1 ? `từ ${format(date)}` : format(date);
+}
+
 export interface HistoryDay {
   key: string;
   label: string;

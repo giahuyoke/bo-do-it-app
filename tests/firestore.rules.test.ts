@@ -341,6 +341,11 @@ describe("History log writes", () => {
     const update = entries.find((entry) => entry.action === "update")!;
     expect(update.before.title).toBe("Nộp báo cáo");
     expect(update.after.title).toBe("Nộp báo cáo quý");
+    // Completion entries carry the task, so the history view can show its day.
+    const complete = entries.find((entry) => entry.action === "complete")!;
+    expect(complete.before).toBeNull();
+    expect(complete.after).toMatchObject({ title: "Nộp báo cáo quý", status: "done" });
+    expect(complete.after.deadline.toDate().toISOString()).toBe("2026-10-20T00:00:00.000Z");
     const deleted = entries.find((entry) => entry.action === "delete")!;
     expect(deleted).toMatchObject({ entity: "task", entityId: task.id, title: "Nộp báo cáo quý", after: null, count: 1 });
     expect(deleted.before).toMatchObject({ title: "Nộp báo cáo quý", status: "done" });
