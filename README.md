@@ -51,10 +51,25 @@ npx -y firebase-tools@latest deploy --only firestore:rules --project <project-id
 users/{uid}/tasks/{taskId}
 users/{uid}/events/{eventId}
 users/{uid}/tags/{tagId}
+users/{uid}/notes/{noteId}
+users/{uid}/history/{entryId}
 ```
 
 Rules chỉ cho phép người dùng đã đăng nhập đọc/ghi các subcollection thuộc UID
 của chính họ, đồng thời kiểm tra kiểu dữ liệu, độ dài chuỗi, enum và timestamp.
+
+### Bật TTL cho nhật ký
+
+Trang Lịch sử chỉ hiện 30 ngày gần nhất. Để Firestore tự xóa bản ghi cũ, bật
+TTL policy một lần cho mỗi project (cần quyền trên Google Cloud):
+
+```bash
+gcloud firestore fields ttls update expiresAt --collection-group=history --enable-ttl --project <project-id>
+```
+
+Hoặc vào Firebase Console > Firestore > TTL, tạo policy cho collection group
+`history`, trường `expiresAt`. TTL có thể dọn trễ tới khoảng 24 giờ. App vẫn
+lọc theo `at`, nên bản ghi quá hạn không hiện ra.
 
 ## Cấu trúc chính
 
