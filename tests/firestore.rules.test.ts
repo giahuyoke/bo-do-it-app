@@ -388,4 +388,18 @@ describe("History log writes", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ action: "create", entity: "event", count: 24 });
   });
+
+  test("tag: tạo, đổi tên, xóa; dòng xóa giữ name và color", async () => {
+    const tag = await createTag("alice", { name: "Học" });
+    await updateTag("alice", tag.id, { name: "Học tập" });
+    await deleteTag("alice", tag.id);
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "update"]);
+    expect(entries.find((entry) => entry.action === "update")).toMatchObject({ before: { name: "Học" }, after: { name: "Học tập" } });
+    expect(entries.find((entry) => entry.action === "delete")).toMatchObject({
+      entity: "tag",
+      title: "Học tập",
+      before: { name: "Học tập", color: "#78c6a3" },
+    });
+  });
 });
