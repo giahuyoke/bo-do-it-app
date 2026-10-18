@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -71,6 +72,17 @@ const validTag = () => ({
   updatedAt: serverTimestamp(),
 });
 
+const validHistory = () => ({
+  action: "delete",
+  entity: "task",
+  entityId: "task-1",
+  title: "Nộp báo cáo",
+  before: { title: "Nộp báo cáo" },
+  after: null,
+  count: 1,
+  at: serverTimestamp(),
+  expiresAt: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
+});
 beforeAll(async () => {
   testEnvironment = await initializeTestEnvironment({
     projectId: "demo-bo-do-it",
@@ -262,5 +274,43 @@ describe("Firestore ownership rules", () => {
       items: Array.from({ length: 101 }, (_, index) => ({ id: String(index), text: "x" })),
       updatedAt: serverTimestamp(),
     }));
+  });
+});
+
+describe("History log rules", () => {
+  test("chủ sở hữu tạo, đọc và xóa được bản ghi hợp lệ; người khác thì không", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    const bob = testEnvironment.authenticatedContext("bob").firestore();
+    await assertSucceeds(setDoc(entry, validHistory()));
+    await assertSucceeds(getDoc(entry));
+    await assertFails(getDoc(doc(bob, "users/alice/history/h1")));
+    await assertFails(setDoc(doc(bob, "users/alice/history/h2"), validHistory()));
+    await assertSucceeds(deleteDoc(entry));
+  });
+
+  test("bản ghi không sửa được", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    await assertSucceeds(setDoc(entry, validHistory()));
+    await assertFails(updateDoc(entry, { title: "Đổi" }));
+  });
+
+  test("từ chối at sai, expiresAt ngoài khoảng, enum sai, khóa thừa, count < 1", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    await assertFails(setDoc(entry, { ...validHistory(), at: Timestamp.fromDate(new Date("2020-01-01T00:00:00Z")) }));
+    await assertFails(setDoc(entry, { ...validHistory(), expiresAt: Timestamp.fromMillis(Date.now() + 60 * 86_400_000) }));
+    await assertFails(setDoc(entry, { ...validHistory(), expiresAt: Timestamp.now() }));
+    await assertFails(setDoc(entry, { ...validHistory(), action: "archive" }));
+    await assertFails(setDoc(entry, { ...validHistory(), entity: "note" }));
+    await assertFails(setDoc(entry, { ...validHistory(), extra: true }));
+    await assertFails(setDoc(entry, { ...validHistory(), count: 0 }));
+    await assertFails(setDoc(entry, { ...validHistory(), title: "x".repeat(201) }));
+    await assertFails(setDoc(entry, { ...validHistory(), before: "text" }));
+  });
+
+  test("list phải có limit ≤ 100", async () => {
+    const history = collection(sdkDb, "users/alice/history");
+    await assertSucceeds(getDocs(query(history, orderBy("at", "desc"), limit(100))));
+    await assertFails(getDocs(query(history, limit(101))));
+    await assertFails(getDocs(query(history)));
   });
 });

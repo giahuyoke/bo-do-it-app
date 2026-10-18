@@ -18,6 +18,12 @@ rules_version = '2';
 //   title: string (0..200), color: '' or six-digit hex string, pinned: bool,
 //   items: list (0..100) of {id, text}, createdAt/updatedAt: timestamp.
 //   Rules cannot iterate a list, so per-item shape is enforced by the client.
+// users/{userId}/history/{entryId}
+//   action: create|update|delete|complete|reopen|convert|restore,
+//   entity: task|event|tag|noteItem, entityId: string (1..100),
+//   title: string (0..200), before/after: map|null, count: int >= 1,
+//   at: timestamp (server time), expiresAt: timestamp (~30 days later, TTL field).
+//   Entries are append-only: never updated, deleted only by "Xóa nhật ký" or TTL.
 // All documents are private to the authenticated user identified by {userId}.
 
 service cloud.firestore {
@@ -152,6 +158,33 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function hasValidHistoryFields(data) {
+      return data.keys().hasAll([
+          'action', 'entity', 'entityId', 'title', 'before', 'after',
+          'count', 'at', 'expiresAt'
+        ])
+        && data.keys().hasOnly([
+          'action', 'entity', 'entityId', 'title', 'before', 'after',
+          'count', 'at', 'expiresAt'
+        ])
+        && data.action in ['create', 'update', 'delete', 'complete', 'reopen', 'convert', 'restore']
+        && data.entity in ['task', 'event', 'tag', 'noteItem']
+        && data.entityId is string
+        && data.entityId.size() > 0
+        && data.entityId.size() <= 100
+        && data.title is string
+        && data.title.size() <= 200
+        && (data.before == null || data.before is map)
+        && (data.after == null || data.after is map)
+        && data.count is int
+        && data.count >= 1
+        && data.at is timestamp
+        && data.expiresAt is timestamp
+        // The client computes expiry from its own clock; allow a day of drift.
+        && data.expiresAt > request.time + duration.value(29, 'd')
+        && data.expiresAt < request.time + duration.value(31, 'd');
+    }
+
     match /users/{userId}/tasks/{taskId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId)
@@ -225,6 +258,20 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
 
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/history/{entryId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId)
+        && request.query.limit != null
+        && request.query.limit <= 100;
+
+      allow create: if isOwner(userId)
+        && hasValidHistoryFields(request.resource.data)
+        && request.resource.data.at == request.time;
+
+      allow update: if false;
       allow delete: if isOwner(userId);
     }
 
