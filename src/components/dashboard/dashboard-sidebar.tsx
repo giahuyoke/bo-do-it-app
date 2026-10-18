@@ -8,6 +8,7 @@ import {
   DownOutlined,
   FormOutlined,
   ForwardOutlined,
+  HistoryOutlined,
   SettingOutlined,
   TagsOutlined,
   ToolOutlined,
@@ -35,7 +36,8 @@ export type DashboardSection =
   | "tasks"
   | "completed"
   | "tags"
-  | "tools";
+  | "tools"
+  | "history";
 
 export interface DashboardCounts {
   /** Lines left on the notes checklist. */
@@ -118,6 +120,7 @@ const navigationGroups: Array<{ label: string; entries: NavigationEntry[] }> = [
     entries: [
       { key: "tools", icon: <ToolOutlined />, label: "Công cụ" },
       { key: "tags", icon: <TagsOutlined />, label: "Quản lý tag" },
+      { key: "history", icon: <HistoryOutlined />, label: "Lịch sử" },
     ],
   },
 ];

@@ -2,7 +2,7 @@
 
 import { Alert, App, Skeleton } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { CalendarToolbar } from "@/components/dashboard/calendar-toolbar";
 import {
@@ -23,6 +23,7 @@ import {
   PlannerCalendar,
   type PlannerView,
 } from "@/components/planner/planner-calendar";
+import { HistoryPage } from "@/components/history/history-page";
 import { ClassScheduleModal } from "@/components/planner/class-schedule-modal";
 import { QuickAddDrawer } from "@/components/planner/quick-add-drawer";
 import { TagManagerModal } from "@/components/planner/tag-manager-modal";
@@ -37,6 +38,7 @@ import { removeChecklistItem } from "@/lib/firebase/notes";
 import type { PlannerItem } from "@/lib/planner";
 import { setTaskCompleted } from "@/lib/firebase/tasks";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
+import { historyItemKey } from "@/lib/history";
 import type { ToolKey } from "@/lib/tools/registry";
 
 const initialDrawerState: PlannerDrawerState = {
@@ -71,6 +73,17 @@ export function Dashboard() {
     section: activeSection,
   });
   const checklist = useRealtimeChecklist(user?.uid ?? "");
+  // Every item loaded right now, so the history page can tell which deleted
+  // items are still gone and offer to restore only those.
+  const existingKeys = useMemo(
+    () =>
+      new Set([
+        ...planner.allItems.map((item) => historyItemKey(item.kind, item.data.id)),
+        ...planner.customTags.map((tag) => historyItemKey("tag", tag.id)),
+        ...checklist.items.map((item) => historyItemKey("noteItem", item.id)),
+      ]),
+    [planner.allItems, planner.customTags, checklist.items],
+  );
 
   if (!user) return null;
 
@@ -243,6 +256,8 @@ export function Dashboard() {
         ) : activeSection === "tags" ? (
           <TagManagerModal userId={user.uid} open embedded
             customTags={planner.customTags} onClose={() => navigate("planner")} />
+        ) : activeSection === "history" ? (
+          <HistoryPage userId={user.uid} existingKeys={existingKeys} />
         ) : activeSection === "today" ? (
           <TodayPanel items={planner.allItems} today={dayjs()} search={search} loading={planner.loading}
             onAdd={() => openCreate("task", dayjs())} onEdit={openEdit} onToggleTask={toggleTask} />

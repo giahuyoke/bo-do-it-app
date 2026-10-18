@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -20,8 +21,8 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { createTask, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
-import { createEvent, updateEvent } from "@/lib/firebase/events";
+import { createTask, deleteTask, saveTaskSeries, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
+import { createEvent, deleteEvent, eventRef, saveEventSeries, updateEvent } from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
 import {
   addChecklistItems,
@@ -30,6 +31,8 @@ import {
   restoreChecklistItem,
   updateChecklistItem,
 } from "@/lib/firebase/notes";
+import { fetchHistoryPage } from "@/lib/firebase/history";
+import { restoreFromHistory } from "@/lib/firebase/restore";
 
 let testEnvironment: RulesTestEnvironment;
 let sdkDb: Firestore;
@@ -70,6 +73,26 @@ const validTag = () => ({
   createdAt: serverTimestamp(),
   updatedAt: serverTimestamp(),
 });
+
+const validHistory = () => ({
+  action: "delete",
+  entity: "task",
+  entityId: "task-1",
+  title: "Nộp báo cáo",
+  before: { title: "Nộp báo cáo" },
+  after: null,
+  count: 1,
+  at: serverTimestamp(),
+  expiresAt: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
+});
+async function historyDocs() {
+  const snapshot = await getDocs(
+    query(collection(sdkDb, "users/alice/history"), orderBy("at", "asc"), limit(100)),
+  );
+  return snapshot.docs.map((item) => item.data());
+}
+
+const actionsOf = (entries: Array<Record<string, unknown>>) => entries.map((entry) => String(entry.action)).sort();
 
 beforeAll(async () => {
   testEnvironment = await initializeTestEnvironment({
@@ -262,5 +285,197 @@ describe("Firestore ownership rules", () => {
       items: Array.from({ length: 101 }, (_, index) => ({ id: String(index), text: "x" })),
       updatedAt: serverTimestamp(),
     }));
+  });
+});
+
+describe("History log rules", () => {
+  test("chủ sở hữu tạo, đọc và xóa được bản ghi hợp lệ; người khác thì không", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    const bob = testEnvironment.authenticatedContext("bob").firestore();
+    await assertSucceeds(setDoc(entry, validHistory()));
+    await assertSucceeds(getDoc(entry));
+    await assertFails(getDoc(doc(bob, "users/alice/history/h1")));
+    await assertFails(setDoc(doc(bob, "users/alice/history/h2"), validHistory()));
+    await assertSucceeds(deleteDoc(entry));
+  });
+
+  test("bản ghi không sửa được", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    await assertSucceeds(setDoc(entry, validHistory()));
+    await assertFails(updateDoc(entry, { title: "Đổi" }));
+  });
+
+  test("từ chối at sai, expiresAt ngoài khoảng, enum sai, khóa thừa, count < 1", async () => {
+    const entry = doc(sdkDb, "users/alice/history/h1");
+    await assertFails(setDoc(entry, { ...validHistory(), at: Timestamp.fromDate(new Date("2020-01-01T00:00:00Z")) }));
+    await assertFails(setDoc(entry, { ...validHistory(), expiresAt: Timestamp.fromMillis(Date.now() + 60 * 86_400_000) }));
+    await assertFails(setDoc(entry, { ...validHistory(), expiresAt: Timestamp.now() }));
+    await assertFails(setDoc(entry, { ...validHistory(), action: "archive" }));
+    await assertFails(setDoc(entry, { ...validHistory(), entity: "note" }));
+    await assertFails(setDoc(entry, { ...validHistory(), extra: true }));
+    await assertFails(setDoc(entry, { ...validHistory(), count: 0 }));
+    await assertFails(setDoc(entry, { ...validHistory(), title: "x".repeat(201) }));
+    await assertFails(setDoc(entry, { ...validHistory(), before: "text" }));
+  });
+
+  test("list phải có limit ≤ 100", async () => {
+    const history = collection(sdkDb, "users/alice/history");
+    await assertSucceeds(getDocs(query(history, orderBy("at", "desc"), limit(100))));
+    await assertFails(getDocs(query(history, limit(101))));
+    await assertFails(getDocs(query(history)));
+  });
+});
+
+describe("History log writes", () => {
+  test("task: tạo, sửa, sửa không đổi, hoàn thành, xóa", async () => {
+    const input = { title: "Nộp báo cáo", deadline: new Date("2026-10-20T00:00:00Z") };
+    const task = await createTask("alice", input);
+    await updateTask("alice", task.id, { ...input, title: "Nộp báo cáo quý" });
+    await updateTask("alice", task.id, { ...input, title: "Nộp báo cáo quý" });
+    await setTaskCompleted("alice", task.id, true);
+    await setTaskCompleted("alice", task.id, true);
+    await deleteTask("alice", task.id);
+
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["complete", "create", "delete", "update"]);
+    const update = entries.find((entry) => entry.action === "update")!;
+    expect(update.before.title).toBe("Nộp báo cáo");
+    expect(update.after.title).toBe("Nộp báo cáo quý");
+    const deleted = entries.find((entry) => entry.action === "delete")!;
+    expect(deleted).toMatchObject({ entity: "task", entityId: task.id, title: "Nộp báo cáo quý", after: null, count: 1 });
+    expect(deleted.before).toMatchObject({ title: "Nộp báo cáo quý", status: "done" });
+  });
+
+  test("task: tạo nhiều khoảng ngày chỉ ghi một dòng có count", async () => {
+    const day = (date: string) => ({ title: "Ôn thi", deadline: new Date(date) });
+    await saveTaskSeries("alice", null, [day("2026-10-20T00:00:00Z"), day("2026-10-21T00:00:00Z"), day("2026-10-22T00:00:00Z")]);
+    const entries = await historyDocs();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ action: "create", entity: "task", title: "Ôn thi", count: 3 });
+  });
+
+  test("xóa task không còn tồn tại thì báo lỗi và không ghi nhật ký", async () => {
+    await expect(deleteTask("alice", "missing")).rejects.toThrow("Công việc này không còn tồn tại.");
+    expect(await historyDocs()).toHaveLength(0);
+  });
+
+  test("event: tạo, sửa, xóa", async () => {
+    const input = { title: "Họp nhóm", location: "Phòng A", startAt: new Date("2026-10-20T08:00:00Z") };
+    const event = await createEvent("alice", input);
+    await updateEvent("alice", event.id, { ...input, location: "Phòng B" });
+    await deleteEvent("alice", event.id);
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "update"]);
+    expect(entries.find((entry) => entry.action === "delete")!.before).toMatchObject({ location: "Phòng B" });
+  });
+
+  test("đổi sự kiện thành nhiệm vụ ghi một dòng convert", async () => {
+    const event = await createEvent("alice", { title: "Họp nhóm", location: "Phòng A", startAt: new Date("2026-10-20T08:00:00Z") });
+    await saveTaskSeries("alice", null, [{ title: "Họp nhóm", deadline: new Date("2026-10-20T00:00:00Z") }], eventRef("alice", event.id));
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["convert", "create"]);
+    const convert = entries.find((entry) => entry.action === "convert")!;
+    expect(convert).toMatchObject({ entity: "task", title: "Họp nhóm", count: 1 });
+    expect(convert.before).toMatchObject({ location: "Phòng A" });
+    expect((await getDoc(eventRef("alice", event.id))).exists()).toBe(false);
+  });
+
+  test("lịch học nhiều buổi chỉ ghi một dòng", async () => {
+    const sessions = Array.from({ length: 24 }, (_, index) => ({
+      title: "Toán cao cấp",
+      startAt: new Date(Date.UTC(2026, 9, 20 + index, 1)),
+    }));
+    await saveEventSeries("alice", null, sessions);
+    const entries = await historyDocs();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ action: "create", entity: "event", count: 24 });
+  });
+
+  test("tag: tạo, đổi tên, xóa; dòng xóa giữ name và color", async () => {
+    const tag = await createTag("alice", { name: "Học" });
+    await updateTag("alice", tag.id, { name: "Học tập" });
+    await deleteTag("alice", tag.id);
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "update"]);
+    expect(entries.find((entry) => entry.action === "update")).toMatchObject({ before: { name: "Học" }, after: { name: "Học tập" } });
+    expect(entries.find((entry) => entry.action === "delete")).toMatchObject({
+      entity: "tag",
+      title: "Học tập",
+      before: { name: "Học tập", color: "#78c6a3" },
+    });
+  });
+
+  test("ghi chú: thêm, sửa, tích, hoàn tác; sửa thành rỗng là xóa", async () => {
+    const milk = newNoteItem("Sữa tươi");
+    const eggs = newNoteItem("Trứng");
+    await addChecklistItems("alice", [milk, eggs]);
+    await updateChecklistItem("alice", milk.id, "Sữa tươi");
+    await updateChecklistItem("alice", milk.id, "Sữa không đường");
+    const removed = await removeChecklistItem("alice", milk.id);
+    await restoreChecklistItem("alice", removed!.item, removed!.index);
+    await updateChecklistItem("alice", eggs.id, "   ");
+
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "delete", "restore", "update"]);
+    expect(entries.find((entry) => entry.action === "create")).toMatchObject({
+      entity: "noteItem",
+      entityId: milk.id,
+      title: "Sữa tươi",
+      count: 2,
+    });
+    expect(entries.find((entry) => entry.action === "update")).toMatchObject({
+      before: { text: "Sữa tươi" },
+      after: { text: "Sữa không đường" },
+    });
+    const deletions = entries.filter((entry) => entry.action === "delete");
+    expect(deletions.map((entry) => entry.before)).toEqual(
+      expect.arrayContaining([
+        { id: milk.id, text: "Sữa không đường", index: 0 },
+        { id: eggs.id, text: "Trứng", index: 1 },
+      ]),
+    );
+  });
+});
+
+describe("Restore from history", () => {
+  async function deletedEntry() {
+    const page = await fetchHistoryPage("alice");
+    return page.entries.find((entry) => entry.action === "delete")!;
+  }
+
+  test("khôi phục task với id cũ, chặn khôi phục lần hai", async () => {
+    const task = await createTask("alice", { title: "Nộp báo cáo", deadline: new Date("2026-10-20T00:00:00Z"), reminderMinutes: 15 });
+    await deleteTask("alice", task.id);
+    const entry = await deletedEntry();
+    await restoreFromHistory("alice", entry);
+
+    const restored = (await getDoc(task)).data();
+    expect(restored).toMatchObject({ title: "Nộp báo cáo", reminderMinutes: 15, status: "todo" });
+    expect(restored?.deadline.toDate().toISOString()).toBe("2026-10-20T00:00:00.000Z");
+    await expect(restoreFromHistory("alice", entry)).rejects.toThrow("Mục này đã được khôi phục.");
+    expect(actionsOf(await historyDocs())).toEqual(["create", "delete", "restore"]);
+  });
+
+  test("khôi phục tag và dòng ghi chú", async () => {
+    const tag = await createTag("alice", { name: "Học" });
+    await deleteTag("alice", tag.id);
+    await restoreFromHistory("alice", await deletedEntry());
+    expect((await getDoc(tag)).data()).toMatchObject({ name: "Học", color: "#78c6a3" });
+
+    const line = newNoteItem("Mua sữa");
+    await addChecklistItems("alice", [newNoteItem("Trứng"), line]);
+    await removeChecklistItem("alice", line.id);
+    const page = await fetchHistoryPage("alice");
+    const lineEntry = page.entries.find((entry) => entry.action === "delete" && entry.entity === "noteItem")!;
+    await restoreFromHistory("alice", lineEntry);
+    expect((await getDoc(doc(sdkDb, "users/alice/notes/main"))).data()?.items[1]).toEqual({ id: line.id, text: "Mua sữa" });
+  });
+
+  test("fetchHistoryPage trả mới nhất trước và đổi Timestamp thành Date", async () => {
+    await createTask("alice", { title: "A", deadline: new Date("2026-10-20T00:00:00Z") });
+    const page = await fetchHistoryPage("alice");
+    expect(page.cursor).toBeNull();
+    expect(page.entries[0].at).toBeInstanceOf(Date);
+    expect(page.entries[0].after?.deadline).toBeInstanceOf(Date);
   });
 });

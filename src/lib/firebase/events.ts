@@ -1,21 +1,17 @@
 import {
-  addDoc,
   collection,
-  deleteDoc,
   doc,
   limit,
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
   Timestamp,
-  updateDoc,
-  writeBatch,
   type DocumentReference,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import { documentData, readDate } from "@/lib/firebase/document-data";
+import { deleteLogged, saveLoggedSeries, type LoggedKind } from "@/lib/firebase/logged-writes";
 import type { CalendarEvent, EventInput } from "@/lib/firebase/models";
 
 function eventsCollection(userId: string) {
@@ -63,50 +59,38 @@ function eventPayload(input: EventInput) {
   };
 }
 
-export async function createEvent(userId: string, input: EventInput) {
-  return addDoc(eventsCollection(userId), {
-    ...eventPayload(input),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+function eventKind(userId: string): LoggedKind<ReturnType<typeof eventPayload>> {
+  return {
+    entity: "event",
+    collection: eventsCollection(userId),
+    readPayload: (data) => eventPayload(eventFromDocument(data)),
+    titleOf: (payload) => payload.title,
+    missingMessage: "Sự kiện này không còn tồn tại.",
+  };
 }
 
-export function updateEvent(
+export async function createEvent(userId: string, input: EventInput) {
+  const [ref] = await saveLoggedSeries(userId, eventKind(userId), null, [eventPayload(input)]);
+  return ref;
+}
+
+export async function updateEvent(
   userId: string,
   eventId: string,
   input: EventInput,
 ) {
-  return updateDoc(doc(eventsCollection(userId), eventId), {
-    ...eventPayload(input),
-    updatedAt: serverTimestamp(),
-  });
+  await saveLoggedSeries(userId, eventKind(userId), eventId, [eventPayload(input)]);
 }
 
 /** Event twin of `saveTaskSeries`: first input may update, the rest create. */
-export function saveEventSeries(
+export async function saveEventSeries(
   userId: string,
   existingId: string | null,
   inputs: EventInput[],
-  /** A plan of the other kind this one turns into; deleted in the same batch. */
+  /** A plan of the other kind this one turns into; deleted in the same commit. */
   replaces?: DocumentReference,
 ) {
-  const batch = writeBatch(getFirestoreDb());
-  if (replaces) batch.delete(replaces);
-  inputs.forEach((input, index) => {
-    if (index === 0 && existingId) {
-      batch.update(doc(eventsCollection(userId), existingId), {
-        ...eventPayload(input),
-        updatedAt: serverTimestamp(),
-      });
-      return;
-    }
-    batch.set(doc(eventsCollection(userId)), {
-      ...eventPayload(input),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  });
-  return batch.commit();
+  await saveLoggedSeries(userId, eventKind(userId), existingId, inputs.map((input) => eventPayload(input)), replaces);
 }
 
 export function eventRef(userId: string, eventId: string) {
@@ -114,7 +98,7 @@ export function eventRef(userId: string, eventId: string) {
 }
 
 export function deleteEvent(userId: string, eventId: string) {
-  return deleteDoc(doc(eventsCollection(userId), eventId));
+  return deleteLogged(userId, eventKind(userId), eventId);
 }
 
 export function subscribeToEvents(
