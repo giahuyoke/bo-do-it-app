@@ -22,7 +22,7 @@ import {
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTask, deleteTask, saveTaskSeries, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
-import { createEvent, updateEvent } from "@/lib/firebase/events";
+import { createEvent, deleteEvent, eventRef, saveEventSeries, updateEvent } from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
 import {
   addChecklistItems,
@@ -355,5 +355,37 @@ describe("History log writes", () => {
   test("xóa task không còn tồn tại thì báo lỗi và không ghi nhật ký", async () => {
     await expect(deleteTask("alice", "missing")).rejects.toThrow("Công việc này không còn tồn tại.");
     expect(await historyDocs()).toHaveLength(0);
+  });
+
+  test("event: tạo, sửa, xóa", async () => {
+    const input = { title: "Họp nhóm", location: "Phòng A", startAt: new Date("2026-10-20T08:00:00Z") };
+    const event = await createEvent("alice", input);
+    await updateEvent("alice", event.id, { ...input, location: "Phòng B" });
+    await deleteEvent("alice", event.id);
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["create", "delete", "update"]);
+    expect(entries.find((entry) => entry.action === "delete")!.before).toMatchObject({ location: "Phòng B" });
+  });
+
+  test("đổi sự kiện thành nhiệm vụ ghi một dòng convert", async () => {
+    const event = await createEvent("alice", { title: "Họp nhóm", location: "Phòng A", startAt: new Date("2026-10-20T08:00:00Z") });
+    await saveTaskSeries("alice", null, [{ title: "Họp nhóm", deadline: new Date("2026-10-20T00:00:00Z") }], eventRef("alice", event.id));
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["convert", "create"]);
+    const convert = entries.find((entry) => entry.action === "convert")!;
+    expect(convert).toMatchObject({ entity: "task", title: "Họp nhóm", count: 1 });
+    expect(convert.before).toMatchObject({ location: "Phòng A" });
+    expect((await getDoc(eventRef("alice", event.id))).exists()).toBe(false);
+  });
+
+  test("lịch học nhiều buổi chỉ ghi một dòng", async () => {
+    const sessions = Array.from({ length: 24 }, (_, index) => ({
+      title: "Toán cao cấp",
+      startAt: new Date(Date.UTC(2026, 9, 20 + index, 1)),
+    }));
+    await saveEventSeries("alice", null, sessions);
+    const entries = await historyDocs();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ action: "create", entity: "event", count: 24 });
   });
 });
