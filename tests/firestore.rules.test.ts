@@ -31,6 +31,8 @@ import {
   restoreChecklistItem,
   updateChecklistItem,
 } from "@/lib/firebase/notes";
+import { fetchHistoryPage } from "@/lib/firebase/history";
+import { restoreFromHistory } from "@/lib/firebase/restore";
 
 let testEnvironment: RulesTestEnvironment;
 let sdkDb: Firestore;
@@ -432,5 +434,48 @@ describe("History log writes", () => {
         { id: eggs.id, text: "Trứng", index: 1 },
       ]),
     );
+  });
+});
+
+describe("Restore from history", () => {
+  async function deletedEntry() {
+    const page = await fetchHistoryPage("alice");
+    return page.entries.find((entry) => entry.action === "delete")!;
+  }
+
+  test("khôi phục task với id cũ, chặn khôi phục lần hai", async () => {
+    const task = await createTask("alice", { title: "Nộp báo cáo", deadline: new Date("2026-10-20T00:00:00Z"), reminderMinutes: 15 });
+    await deleteTask("alice", task.id);
+    const entry = await deletedEntry();
+    await restoreFromHistory("alice", entry);
+
+    const restored = (await getDoc(task)).data();
+    expect(restored).toMatchObject({ title: "Nộp báo cáo", reminderMinutes: 15, status: "todo" });
+    expect(restored?.deadline.toDate().toISOString()).toBe("2026-10-20T00:00:00.000Z");
+    await expect(restoreFromHistory("alice", entry)).rejects.toThrow("Mục này đã được khôi phục.");
+    expect(actionsOf(await historyDocs())).toEqual(["create", "delete", "restore"]);
+  });
+
+  test("khôi phục tag và dòng ghi chú", async () => {
+    const tag = await createTag("alice", { name: "Học" });
+    await deleteTag("alice", tag.id);
+    await restoreFromHistory("alice", await deletedEntry());
+    expect((await getDoc(tag)).data()).toMatchObject({ name: "Học", color: "#78c6a3" });
+
+    const line = newNoteItem("Mua sữa");
+    await addChecklistItems("alice", [newNoteItem("Trứng"), line]);
+    await removeChecklistItem("alice", line.id);
+    const page = await fetchHistoryPage("alice");
+    const lineEntry = page.entries.find((entry) => entry.action === "delete" && entry.entity === "noteItem")!;
+    await restoreFromHistory("alice", lineEntry);
+    expect((await getDoc(doc(sdkDb, "users/alice/notes/main"))).data()?.items[1]).toEqual({ id: line.id, text: "Mua sữa" });
+  });
+
+  test("fetchHistoryPage trả mới nhất trước và đổi Timestamp thành Date", async () => {
+    await createTask("alice", { title: "A", deadline: new Date("2026-10-20T00:00:00Z") });
+    const page = await fetchHistoryPage("alice");
+    expect(page.cursor).toBeNull();
+    expect(page.entries[0].at).toBeInstanceOf(Date);
+    expect(page.entries[0].after?.deadline).toBeInstanceOf(Date);
   });
 });
