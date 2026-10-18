@@ -52,7 +52,7 @@ Bản chụp là **đúng dữ liệu đã ghi xuống Firestore**, không gồm
 |---|---|---|
 | `create` | null | payload mới (với tạo hàng loạt là payload của mục đầu tiên) |
 | `update` | payload cũ | payload mới |
-| `complete` / `reopen` | null | null |
+| `complete` / `reopen` | null | payload sau khi đổi trạng thái (để hiện ngày của nhiệm vụ) |
 | `delete` | payload cũ, dùng để khôi phục | null |
 | `convert` | payload cũ (kiểu cũ) | payload mới (kiểu mới). `entity` là kiểu **mới** |
 | `restore` | null | payload đã khôi phục |
@@ -148,6 +148,11 @@ Không cần index mới: query chỉ `orderBy("at", "desc")` cộng điều ki�
     - *Đã tạo 24 sự kiện "Toán cao cấp"*
     - *Đã tích dòng ghi chú "Mua sữa"*
     - *Đã đổi sự kiện "Họp nhóm" thành nhiệm vụ*
+  - **Ngày của mục trên lịch** (`entryDateLabel`), dạng nhãn nhỏ sau câu mô tả:
+    - Một ngày: `20/10`. Năm khác năm hiện tại thì thêm năm: `05/01/2027`.
+    - Sửa có dời ngày: `12/10 → 14/10`. Đổi kiểu thì so `startAt` với `deadline`.
+    - Tạo hàng loạt: `từ 20/10` (ngày của mục đầu tiên).
+    - Không hiện với tag, dòng ghi chú, nhiệm vụ không có ngày, và các bản ghi cũ không có bản chụp.
   - Giờ `HH:mm`.
   - Nút **Khôi phục** (theo điều kiện ở trên).
 - **Bấm vào dòng `update`/`convert`** để mở danh sách thay đổi, mỗi trường một dòng `Nhãn: cũ → mới`. Các dòng khác không mở rộng được.

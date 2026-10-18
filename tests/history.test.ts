@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   describeEntry,
   diffFields,
+  entryDateLabel,
   filterEntries,
   groupByDay,
   historyCutoff,
@@ -149,5 +150,38 @@ describe("retention and helpers", () => {
     expect(filterEntries(items, "all", false).map((item) => item.id)).toEqual(["1", "2", "3"]);
     expect(filterEntries(items, "task", false).map((item) => item.id)).toEqual(["1", "2"]);
     expect(filterEntries(items, "all", true).map((item) => item.id)).toEqual(["1", "3"]);
+  });
+});
+
+describe("entryDateLabel", () => {
+  const today = dayjs("2026-10-19T12:00:00");
+  const at = (date: string) => new Date(date);
+
+  test("ngày của mục khi tạo hoặc xóa", () => {
+    expect(entryDateLabel(entry({ before: null, after: { deadline: at("2026-10-20T00:00:00") } }), today)).toBe("20/10");
+    expect(entryDateLabel(entry({ before: { startAt: at("2026-10-21T08:00:00") } }), today)).toBe("21/10");
+  });
+
+  test("sửa có dời ngày thì hiện cũ → mới, cùng ngày thì một ngày", () => {
+    const moved = entry({ action: "update", before: { deadline: at("2026-10-12T00:00:00") }, after: { deadline: at("2026-10-14T00:00:00") } });
+    expect(entryDateLabel(moved, today)).toBe("12/10 → 14/10");
+    const sameDay = entry({ action: "update", before: { startAt: at("2026-10-12T08:00:00") }, after: { startAt: at("2026-10-12T10:00:00") } });
+    expect(entryDateLabel(sameDay, today)).toBe("12/10");
+  });
+
+  test("đổi kiểu so deadline với startAt", () => {
+    const convert = entry({ action: "convert", before: { startAt: at("2026-10-12T08:00:00") }, after: { deadline: at("2026-10-13T00:00:00") } });
+    expect(entryDateLabel(convert, today)).toBe("12/10 → 13/10");
+  });
+
+  test("tạo hàng loạt hiện ngày đầu, năm khác thì có năm", () => {
+    expect(entryDateLabel(entry({ before: null, after: { startAt: at("2026-10-20T01:00:00") }, count: 24 }), today)).toBe("từ 20/10");
+    expect(entryDateLabel(entry({ before: null, after: { deadline: at("2027-01-05T00:00:00") } }), today)).toBe("05/01/2027");
+  });
+
+  test("không có ngày thì null", () => {
+    expect(entryDateLabel(entry({ entity: "tag", before: { name: "Học", color: "#78c6a3" } }), today)).toBeNull();
+    expect(entryDateLabel(entry({ action: "complete", before: null, after: null }), today)).toBeNull();
+    expect(entryDateLabel(entry({ before: { deadline: null } }), today)).toBeNull();
   });
 });

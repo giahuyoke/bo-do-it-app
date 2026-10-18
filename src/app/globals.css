@@ -3078,6 +3078,18 @@ button.history-entry-toggle {
   overflow-wrap: anywhere;
 }
 
+.history-date {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--chip-neutral);
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .history-entry time {
   flex: none;
   color: var(--text-faint);
