@@ -21,7 +21,7 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { createTask, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
+import { createTask, deleteTask, saveTaskSeries, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
 import { createEvent, updateEvent } from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
 import {
@@ -83,6 +83,15 @@ const validHistory = () => ({
   at: serverTimestamp(),
   expiresAt: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
 });
+async function historyDocs() {
+  const snapshot = await getDocs(
+    query(collection(sdkDb, "users/alice/history"), orderBy("at", "asc"), limit(100)),
+  );
+  return snapshot.docs.map((item) => item.data());
+}
+
+const actionsOf = (entries: Array<Record<string, unknown>>) => entries.map((entry) => String(entry.action)).sort();
+
 beforeAll(async () => {
   testEnvironment = await initializeTestEnvironment({
     projectId: "demo-bo-do-it",
@@ -312,5 +321,39 @@ describe("History log rules", () => {
     await assertSucceeds(getDocs(query(history, orderBy("at", "desc"), limit(100))));
     await assertFails(getDocs(query(history, limit(101))));
     await assertFails(getDocs(query(history)));
+  });
+});
+
+describe("History log writes", () => {
+  test("task: tạo, sửa, sửa không đổi, hoàn thành, xóa", async () => {
+    const input = { title: "Nộp báo cáo", deadline: new Date("2026-10-20T00:00:00Z") };
+    const task = await createTask("alice", input);
+    await updateTask("alice", task.id, { ...input, title: "Nộp báo cáo quý" });
+    await updateTask("alice", task.id, { ...input, title: "Nộp báo cáo quý" });
+    await setTaskCompleted("alice", task.id, true);
+    await setTaskCompleted("alice", task.id, true);
+    await deleteTask("alice", task.id);
+
+    const entries = await historyDocs();
+    expect(actionsOf(entries)).toEqual(["complete", "create", "delete", "update"]);
+    const update = entries.find((entry) => entry.action === "update")!;
+    expect(update.before.title).toBe("Nộp báo cáo");
+    expect(update.after.title).toBe("Nộp báo cáo quý");
+    const deleted = entries.find((entry) => entry.action === "delete")!;
+    expect(deleted).toMatchObject({ entity: "task", entityId: task.id, title: "Nộp báo cáo quý", after: null, count: 1 });
+    expect(deleted.before).toMatchObject({ title: "Nộp báo cáo quý", status: "done" });
+  });
+
+  test("task: tạo nhiều khoảng ngày chỉ ghi một dòng có count", async () => {
+    const day = (date: string) => ({ title: "Ôn thi", deadline: new Date(date) });
+    await saveTaskSeries("alice", null, [day("2026-10-20T00:00:00Z"), day("2026-10-21T00:00:00Z"), day("2026-10-22T00:00:00Z")]);
+    const entries = await historyDocs();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ action: "create", entity: "task", title: "Ôn thi", count: 3 });
+  });
+
+  test("xóa task không còn tồn tại thì báo lỗi và không ghi nhật ký", async () => {
+    await expect(deleteTask("alice", "missing")).rejects.toThrow("Công việc này không còn tồn tại.");
+    expect(await historyDocs()).toHaveLength(0);
   });
 });

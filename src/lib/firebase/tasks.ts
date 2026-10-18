@@ -1,7 +1,5 @@
 import {
-  addDoc,
   collection,
-  deleteDoc,
   doc,
   limit,
   onSnapshot,
@@ -10,13 +8,13 @@ import {
   runTransaction,
   serverTimestamp,
   Timestamp,
-  updateDoc,
-  writeBatch,
   type DocumentReference,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import { documentData, readDate } from "@/lib/firebase/document-data";
+import { historyWrite } from "@/lib/firebase/history";
+import { deleteLogged, saveLoggedSeries, type LoggedKind } from "@/lib/firebase/logged-writes";
 import type { Task, TaskInput } from "@/lib/firebase/models";
 
 function tasksCollection(userId: string) {
@@ -59,6 +57,17 @@ function taskPayload(input: TaskInput) {
   };
 }
 
+function taskKind(userId: string): LoggedKind<ReturnType<typeof taskPayload>> {
+  return {
+    entity: "task",
+    collection: tasksCollection(userId),
+    // Older tasks predate tags, endAt and reminders; normalize them like an update would.
+    readPayload: (data) => taskPayload(taskFromDocument(data)),
+    titleOf: (payload) => payload.title,
+    missingMessage: "Công việc này không còn tồn tại.",
+  };
+}
+
 export function setTaskCompleted(
   userId: string,
   taskId: string,
@@ -74,53 +83,42 @@ export function setTaskCompleted(
       ...taskPayload({ ...task, completed, status: completed ? "done" : "todo" }),
       updatedAt: serverTimestamp(),
     });
+    if ((task.status === "done") !== completed) {
+      const entry = historyWrite(userId, {
+        action: completed ? "complete" : "reopen",
+        entity: "task",
+        entityId: taskId,
+        title: task.title,
+        before: null,
+        after: null,
+      });
+      transaction.set(entry.ref, entry.data);
+    }
   });
 }
 
 export async function createTask(userId: string, input: TaskInput) {
-  return addDoc(tasksCollection(userId), {
-    ...taskPayload(input),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const [ref] = await saveLoggedSeries(userId, taskKind(userId), null, [taskPayload(input)]);
+  return ref;
 }
 
-export function updateTask(userId: string, taskId: string, input: TaskInput) {
-  return updateDoc(doc(tasksCollection(userId), taskId), {
-    ...taskPayload(input),
-    updatedAt: serverTimestamp(),
-  });
+export async function updateTask(userId: string, taskId: string, input: TaskInput) {
+  await saveLoggedSeries(userId, taskKind(userId), taskId, [taskPayload(input)]);
 }
 
 /**
- * Saves one task per date range in a single batch: the first input updates
+ * Saves one task per date range in a single commit: the first input updates
  * `existingId` when given, every other input becomes a new task. Turning an
  * event into a task passes the event as `replaces`, so the swap is atomic.
  */
-export function saveTaskSeries(
+export async function saveTaskSeries(
   userId: string,
   existingId: string | null,
   inputs: TaskInput[],
-  /** A plan of the other kind this one turns into; deleted in the same batch. */
+  /** A plan of the other kind this one turns into; deleted in the same commit. */
   replaces?: DocumentReference,
 ) {
-  const batch = writeBatch(getFirestoreDb());
-  if (replaces) batch.delete(replaces);
-  inputs.forEach((input, index) => {
-    if (index === 0 && existingId) {
-      batch.update(doc(tasksCollection(userId), existingId), {
-        ...taskPayload(input),
-        updatedAt: serverTimestamp(),
-      });
-      return;
-    }
-    batch.set(doc(tasksCollection(userId)), {
-      ...taskPayload(input),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  });
-  return batch.commit();
+  await saveLoggedSeries(userId, taskKind(userId), existingId, inputs.map((input) => taskPayload(input)), replaces);
 }
 
 export function taskRef(userId: string, taskId: string) {
@@ -128,7 +126,7 @@ export function taskRef(userId: string, taskId: string) {
 }
 
 export function deleteTask(userId: string, taskId: string) {
-  return deleteDoc(doc(tasksCollection(userId), taskId));
+  return deleteLogged(userId, taskKind(userId), taskId);
 }
 
 export function subscribeToTasks(
