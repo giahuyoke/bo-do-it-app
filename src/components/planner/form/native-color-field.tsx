@@ -1,22 +1,40 @@
+import { presetColors } from "@/lib/recent-colors";
+
 interface NativeColorFieldProps {
   value?: string;
   onChange?: (value: string) => void;
+  /** Custom colors picked lately, newest first; shown under the presets. */
+  recentColors?: readonly string[];
 }
 
-const tagColors = [
-  "#e9bd4e",
-  "#ef946c",
-  "#e77991",
-  "#b58ce1",
-  "#7f9ee8",
-  "#60afd1",
-  "#65b98c",
-  "#8fa261",
-];
+function ColorSwatch({
+  color,
+  selected,
+  onPick,
+}: {
+  color: string;
+  selected: boolean;
+  onPick: (color: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={selected ? "is-selected" : ""}
+      style={{ backgroundColor: color }}
+      aria-label={`Chọn màu ${color}`}
+      aria-pressed={selected}
+      onClick={() => onPick(color)}
+    >
+      {selected && <span aria-hidden="true">✓</span>}
+    </button>
+  );
+}
+
 
 export function NativeColorField({
   value = "#78c6a3",
   onChange,
+  recentColors = [],
 }: NativeColorFieldProps) {
   const currentColor = /^#[0-9a-fA-F]{6}$/.test(value)
     ? value.toLowerCase()
@@ -29,23 +47,14 @@ export function NativeColorField({
         role="group"
         aria-label="Màu có sẵn"
       >
-        {tagColors.map((color) => {
-          const selected = color === currentColor;
-
-          return (
-            <button
-              key={color}
-              type="button"
-              className={selected ? "is-selected" : ""}
-              style={{ backgroundColor: color }}
-              aria-label={`Chọn màu ${color}`}
-              aria-pressed={selected}
-              onClick={() => onChange?.(color)}
-            >
-              {selected && <span aria-hidden="true">✓</span>}
-            </button>
-          );
-        })}
+        {presetColors.map((color) => (
+          <ColorSwatch
+            key={color}
+            color={color}
+            selected={color === currentColor}
+            onPick={(picked) => onChange?.(picked)}
+          />
+        ))}
 
         <label
           className="tag-color-custom"
@@ -61,6 +70,26 @@ export function NativeColorField({
           <span aria-hidden="true">+</span>
         </label>
       </div>
+
+      {recentColors.length > 0 && (
+        <div className="tag-color-recent">
+          <span className="tag-color-recent-label">Gần đây</span>
+          <div
+            className="tag-color-palette"
+            role="group"
+            aria-label="Màu dùng gần đây"
+          >
+            {recentColors.map((color) => (
+              <ColorSwatch
+                key={color}
+                color={color}
+                selected={color === currentColor}
+                onPick={(picked) => onChange?.(picked)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="tag-color-value">
         <span

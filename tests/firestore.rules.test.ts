@@ -48,6 +48,7 @@ import {
   updateChecklistItem,
 } from "@/lib/firebase/notes";
 import { fetchHistoryPage } from "@/lib/firebase/history";
+import { saveRecentColors } from "@/lib/firebase/preferences";
 import type { CalendarEvent, Task } from "@/lib/firebase/models";
 import { restoreFromHistory } from "@/lib/firebase/restore";
 
@@ -302,6 +303,36 @@ describe("Firestore ownership rules", () => {
       items: Array.from({ length: 101 }, (_, index) => ({ id: String(index), text: "x" })),
       updatedAt: serverTimestamp(),
     }));
+  });
+});
+
+describe("Recent colors rules", () => {
+  test("chủ sở hữu lưu và đọc màu gần đây; người khác thì không", async () => {
+    await saveRecentColors("alice", ["#123456", "#ABCDEF"]);
+    const snapshot = await getDoc(doc(sdkDb, "users/alice/preferences/colors"));
+    expect(snapshot.data()?.recent).toEqual(["#123456", "#abcdef"]);
+    await saveRecentColors("alice", ["#654321"]);
+
+    const bob = testEnvironment.authenticatedContext("bob").firestore();
+    await assertFails(getDoc(doc(bob, "users/alice/preferences/colors")));
+    await assertFails(
+      setDoc(doc(bob, "users/alice/preferences/colors"), { recent: [], updatedAt: serverTimestamp() }),
+    );
+  });
+
+  test("từ chối khóa thừa, danh sách quá 8, updatedAt sai, doc khác và xóa", async () => {
+    const ref = doc(sdkDb, "users/alice/preferences/colors");
+    await assertFails(setDoc(ref, { recent: [], updatedAt: serverTimestamp(), extra: 1 }));
+    await assertFails(
+      setDoc(ref, { recent: Array(9).fill("#123456"), updatedAt: serverTimestamp() }),
+    );
+    await assertFails(setDoc(ref, { recent: "#123456", updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(ref, { recent: [], updatedAt: Timestamp.fromMillis(0) }));
+    await assertFails(
+      setDoc(doc(sdkDb, "users/alice/preferences/other"), { recent: [], updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(setDoc(ref, { recent: [], updatedAt: serverTimestamp() }));
+    await assertFails(deleteDoc(ref));
   });
 });
 
