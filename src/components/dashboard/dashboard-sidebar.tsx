@@ -9,13 +9,15 @@ import {
   FormOutlined,
   ForwardOutlined,
   HistoryOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   SettingOutlined,
   TagsOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
-import { Drawer, Dropdown } from "antd";
+import { Drawer, Dropdown, Tooltip } from "antd";
 import dayjs from "dayjs";
-import { useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { ItemTitle } from "@/components/planner/item-title";
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { useThemeMenuItems } from "@/components/theme-menu";
@@ -70,6 +72,46 @@ interface NavigationEntry {
 }
 
 const taskPreviewLimit = 6;
+
+const sidebarCollapsedKey = "bo-do-it-sidebar-collapsed";
+// `storage` only fires in other tabs, so this tab announces its own writes.
+const sidebarChangeEvent = "bo-do-it-sidebar-change";
+
+function subscribeSidebarCollapsed(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(sidebarChangeEvent, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(sidebarChangeEvent, onChange);
+  };
+}
+
+function readSidebarCollapsed() {
+  try {
+    return localStorage.getItem(sidebarCollapsedKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Desktop sidebar collapsed to icons; open when storage can't be read. */
+function useSidebarCollapsed() {
+  const collapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    readSidebarCollapsed,
+    () => false,
+  );
+  const setCollapsed = (next: boolean) => {
+    try {
+      if (next) localStorage.setItem(sidebarCollapsedKey, "1");
+      else localStorage.removeItem(sidebarCollapsedKey);
+    } catch {
+      // Storage is blocked (e.g. private mode): the sidebar stays open.
+    }
+    window.dispatchEvent(new Event(sidebarChangeEvent));
+  };
+  return [collapsed, setCollapsed] as const;
+}
 
 // Planner (the calendar with every item) stands alone; the groups below it
 // are narrower views. An empty label renders a group without a heading.
@@ -209,7 +251,8 @@ function DashboardNavigation({
   onNavigate,
   onOpenItem,
   onOpenTool,
-}: NavigationProps) {
+  collapsed = false,
+}: NavigationProps & { collapsed?: boolean }) {
   // Open by default so pending tasks are visible at a glance.
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [toolsExpanded, setToolsExpanded] = useState(true);
@@ -229,6 +272,25 @@ function DashboardNavigation({
           {group.entries.map((entry) => {
             const active =
               entry.key === activeSection && !(entry.key === "tools" && openPinnedTool);
+            const count = entry.countKey ? counts[entry.countKey] : null;
+            // Collapsed, only the icon shows: the name moves to a tooltip and
+            // the count shrinks to a dot.
+            if (collapsed) {
+              return (
+                <Tooltip key={entry.key} title={entry.label} placement="right">
+                  <button
+                    type="button"
+                    className={active ? "is-active" : ""}
+                    aria-current={active ? "page" : undefined}
+                    aria-label={count ? `${entry.label} (${count})` : entry.label}
+                    onClick={() => onNavigate(entry.key)}
+                  >
+                    {entry.icon}
+                    {count ? <span className="planner-nav-dot" /> : null}
+                  </button>
+                </Tooltip>
+              );
+            }
             const button = (
               <button
                 type="button"
@@ -239,10 +301,8 @@ function DashboardNavigation({
               >
                 {entry.icon}
                 <span className="planner-nav-label">{entry.label}</span>
-                {entry.countKey ? (
-                  <span className="planner-nav-count">
-                    {counts[entry.countKey]}
-                  </span>
+                {count !== null ? (
+                  <span className="planner-nav-count">{count}</span>
                 ) : null}
               </button>
             );
@@ -344,30 +404,61 @@ export function MobileBottomNavigation({
 
 export function DashboardSidebar(props: NavigationProps) {
   const themeItems = useThemeMenuItems();
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const toggleLabel = collapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên";
+  const settings = (
+    <button
+      type="button"
+      className="planner-settings-link"
+      aria-label={collapsed ? "Cài đặt" : undefined}
+    >
+      <SettingOutlined />
+      {collapsed ? null : <span>Cài đặt</span>}
+    </button>
+  );
   return (
-    <aside className="planner-sidebar">
+    <aside className={`planner-sidebar ${collapsed ? "is-collapsed" : ""}`}>
       <div className="planner-sidebar-scroll">
         <div className="planner-brand">
           <span className="planner-logo">B</span>
-          <div>
-            <strong>Bo do it</strong>
-            <span>For my wife</span>
+          {collapsed ? null : (
+            <div>
+              <strong>Bo do it</strong>
+              <span>For my wife</span>
+            </div>
+          )}
+          <Tooltip title={toggleLabel} placement="right">
+            <button
+              type="button"
+              className="planner-sidebar-toggle"
+              aria-label={toggleLabel}
+              aria-expanded={!collapsed}
+              onClick={() => setCollapsed(!collapsed)}
+            >
+              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            </button>
+          </Tooltip>
+        </div>
+
+        <DashboardNavigation {...props} collapsed={collapsed} />
+
+        {collapsed ? null : (
+          <div className="planner-sidebar-card">
+            <span className="planner-sidebar-card-icon">✦</span>
+            <strong>Một ngày thật nhẹ</strong>
+            <p>Chọn ba việc quan trọng nhất và bắt đầu từ việc nhỏ.</p>
           </div>
-        </div>
-
-        <DashboardNavigation {...props} />
-
-        <div className="planner-sidebar-card">
-          <span className="planner-sidebar-card-icon">✦</span>
-          <strong>Một ngày thật nhẹ</strong>
-          <p>Chọn ba việc quan trọng nhất và bắt đầu từ việc nhỏ.</p>
-        </div>
+        )}
       </div>
 
       <Dropdown trigger={["click"]} placement="topLeft" menu={{ items: themeItems }}>
-        <button type="button" className="planner-settings-link">
-          <SettingOutlined /> Cài đặt
-        </button>
+        {collapsed ? (
+          <Tooltip title="Cài đặt" placement="right">
+            {settings}
+          </Tooltip>
+        ) : (
+          settings
+        )}
       </Dropdown>
     </aside>
   );
