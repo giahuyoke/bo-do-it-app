@@ -58,6 +58,23 @@ users/{uid}/history/{entryId}
 Rules chỉ cho phép người dùng đã đăng nhập đọc/ghi các subcollection thuộc UID
 của chính họ, đồng thời kiểm tra kiểu dữ liệu, độ dài chuỗi, enum và timestamp.
 
+### Tải dữ liệu và cache
+
+Để tiết kiệm lượt đọc Firestore (gói Spark cho 50k lượt/ngày):
+
+- Firestore lưu một bản sao trong IndexedDB, dùng chung cho mọi tab. Mở lại
+  app sẽ hiện dữ liệu ngay từ cache. Nếu mở lại trong vòng 30 phút, chỉ những
+  doc đã thay đổi mới bị tính lượt đọc.
+- Task và event được tải theo từng tháng: tháng trước, tháng này và 2 tháng tới,
+  cộng thêm ±1 tháng quanh tháng đang xem trên lịch. Chuyển lịch sang tháng nào
+  thì tháng đó tự được tải. Tháng đã tải giữ listener tới khi đóng trang.
+- Task chưa xong luôn được tải hết, kể cả task quá hạn hoặc không có ngày.
+- Khi tìm kiếm, app hiện nút **Tải tất cả** để tải thêm 200 task mới nhất và 200
+  event sớm nhất ngoài các tháng đã tải.
+- Số "Đã hoàn thành" được đếm trên server (1 lượt đọc mỗi lần đếm, tối đa 200).
+
+Các query này chỉ dùng index một trường mặc định, không cần deploy index mới.
+
 ### Dọn nhật ký cũ
 
 Trang Lịch sử chỉ hiện 30 ngày gần nhất. Bản ghi cũ hơn được xóa bằng Vercel

@@ -39,7 +39,7 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
 
 export function EventPanel({ userId }: { userId: string }) {
   const { message } = App.useApp();
-  const { error, events, loading } = useRealtimeEvents(userId);
+  const { error, events, loading } = useRealtimeEvents(userId, [], true);
   const [form] = Form.useForm<EventFormValues>();
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);

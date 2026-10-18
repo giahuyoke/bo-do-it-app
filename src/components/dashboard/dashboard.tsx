@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, App, Skeleton } from "antd";
+import { Alert, App, Button, Skeleton } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -70,6 +70,7 @@ export function Dashboard() {
     filter,
     search,
     selectedDate,
+    visibleDate,
     section: activeSection,
   });
   const checklist = useRealtimeChecklist(user?.uid ?? "");
@@ -93,6 +94,8 @@ export function Dashboard() {
   };
 
   const upcomingWindow = activeSection === "upcoming" && view === "agenda";
+  // Sections whose search runs over tasks and events, which load by month.
+  const searchesPlanner = !["notes", "tools", "tags", "history", "today"].includes(activeSection);
 
   const closeMobileNavigation = () => setMobileNavigationOpen(false);
 
@@ -234,6 +237,21 @@ export function Dashboard() {
             showIcon
             title="Không thể đồng bộ planner"
             description={firebaseErrorMessage(planner.taskError ?? planner.eventError ?? planner.tagError, "Vui lòng thử lại.")}
+          />
+        ) : null}
+
+        {search.trim() && !planner.allRequested && searchesPlanner ? (
+          <Alert
+            className="mb-4"
+            type="info"
+            showIcon
+            title="Chỉ tìm trong các tháng đã tải"
+            description="Để tiết kiệm, lịch chỉ tải các tháng quanh hôm nay và những tháng bạn đã xem. Kế hoạch ở tháng khác có thể chưa hiện."
+            action={
+              <Button size="small" onClick={planner.loadAll}>
+                Tải tất cả
+              </Button>
+            }
           />
         ) : null}
 

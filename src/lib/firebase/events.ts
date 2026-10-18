@@ -6,13 +6,16 @@ import {
   orderBy,
   query,
   Timestamp,
+  where,
   type DocumentReference,
+  type Query,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import { documentData, readDate } from "@/lib/firebase/document-data";
 import { deleteLogged, saveLoggedSeries, type LoggedKind } from "@/lib/firebase/logged-writes";
 import type { CalendarEvent, EventInput } from "@/lib/firebase/models";
+import { monthBounds, type MonthKey } from "@/lib/load-window";
 
 function eventsCollection(userId: string) {
   return collection(getFirestoreDb(), "users", userId, "events");
@@ -101,17 +104,11 @@ export function deleteEvent(userId: string, eventId: string) {
   return deleteLogged(userId, eventKind(userId), eventId);
 }
 
-export function subscribeToEvents(
-  userId: string,
+function listenToEvents(
+  eventsQuery: Query,
   onData: (events: CalendarEvent[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
-  const eventsQuery = query(
-    eventsCollection(userId),
-    orderBy("startAt", "asc"),
-    limit(200),
-  );
-
   return onSnapshot(
     eventsQuery,
     (snapshot) => {
@@ -123,4 +120,36 @@ export function subscribeToEvents(
     },
     onError,
   );
+}
+
+/** The 200 earliest events. */
+export function subscribeToEvents(
+  userId: string,
+  onData: (events: CalendarEvent[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const eventsQuery = query(
+    eventsCollection(userId),
+    orderBy("startAt", "asc"),
+    limit(200),
+  );
+  return listenToEvents(eventsQuery, onData, onError);
+}
+
+/** Events that start in one month. */
+export function subscribeToEventsInMonth(
+  userId: string,
+  month: MonthKey,
+  onData: (events: CalendarEvent[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const { start, end } = monthBounds(month);
+  const eventsQuery = query(
+    eventsCollection(userId),
+    where("startAt", ">=", Timestamp.fromDate(start)),
+    where("startAt", "<", Timestamp.fromDate(end)),
+    orderBy("startAt", "asc"),
+    limit(200),
+  );
+  return listenToEvents(eventsQuery, onData, onError);
 }

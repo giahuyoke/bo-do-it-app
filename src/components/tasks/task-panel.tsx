@@ -68,7 +68,7 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
 
 export function TaskPanel({ userId }: { userId: string }) {
   const { message } = App.useApp();
-  const { error, loading, tasks } = useRealtimeTasks(userId);
+  const { error, loading, tasks } = useRealtimeTasks(userId, [], true);
   const [form] = Form.useForm<TaskFormValues>();
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [modalOpen, setModalOpen] = useState(false);

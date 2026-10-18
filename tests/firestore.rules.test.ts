@@ -21,8 +21,24 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { createTask, deleteTask, saveTaskSeries, setTaskCompleted, updateTask } from "@/lib/firebase/tasks";
-import { createEvent, deleteEvent, eventRef, saveEventSeries, updateEvent } from "@/lib/firebase/events";
+import {
+  countDoneTasks,
+  createTask,
+  deleteTask,
+  saveTaskSeries,
+  setTaskCompleted,
+  subscribeToOpenTasks,
+  subscribeToTasksInMonth,
+  updateTask,
+} from "@/lib/firebase/tasks";
+import {
+  createEvent,
+  deleteEvent,
+  eventRef,
+  saveEventSeries,
+  subscribeToEventsInMonth,
+  updateEvent,
+} from "@/lib/firebase/events";
 import { createTag, updateTag, deleteTag } from "@/lib/firebase/tags";
 import {
   addChecklistItems,
@@ -32,6 +48,7 @@ import {
   updateChecklistItem,
 } from "@/lib/firebase/notes";
 import { fetchHistoryPage } from "@/lib/firebase/history";
+import type { CalendarEvent, Task } from "@/lib/firebase/models";
 import { restoreFromHistory } from "@/lib/firebase/restore";
 
 let testEnvironment: RulesTestEnvironment;
@@ -482,5 +499,57 @@ describe("Restore from history", () => {
     expect(page.cursor).toBeNull();
     expect(page.entries[0].at).toBeInstanceOf(Date);
     expect(page.entries[0].after?.deadline).toBeInstanceOf(Date);
+  });
+});
+/** The first result a listener delivers from the server. */
+function firstResult<T>(
+  listen: (onData: (items: T[]) => void, onError: (error: Error) => void) => () => void,
+) {
+  return new Promise<T[]>((resolve, reject) => {
+    const unsubscribe = listen(
+      (items) => {
+        unsubscribe();
+        resolve(items);
+      },
+      (error) => reject(error),
+    );
+  });
+}
+
+const titlesOf = (items: Array<{ title: string }>) => items.map((item) => item.title).sort();
+
+describe("Month-window queries", () => {
+  test("task theo tháng, task chưa xong và đếm task đã xong", async () => {
+    await createTask("alice", { title: "Tháng 10 chưa xong", deadline: new Date(2026, 9, 15, 9) });
+    await createTask("alice", { title: "Tháng 10 đã xong", deadline: new Date(2026, 9, 16, 9), completed: true });
+    await createTask("alice", { title: "Tháng 12 đã xong", deadline: new Date(2026, 11, 2, 9), completed: true });
+    await createTask("alice", { title: "Quá hạn", deadline: new Date(2025, 0, 10, 9), status: "in_progress" });
+    await createTask("alice", { title: "Không có ngày" });
+
+    const october = await firstResult<Task>((onData, onError) => subscribeToTasksInMonth("alice", "2026-10", onData, onError));
+    expect(titlesOf(october)).toEqual(["Tháng 10 chưa xong", "Tháng 10 đã xong"]);
+
+    const open = await firstResult<Task>((onData, onError) => subscribeToOpenTasks("alice", onData, onError));
+    expect(titlesOf(open)).toEqual(["Không có ngày", "Quá hạn", "Tháng 10 chưa xong"]);
+
+    expect(await countDoneTasks("alice")).toBe(2);
+  });
+
+  test("event theo tháng không lấy tháng bên cạnh", async () => {
+    await createEvent("alice", { title: "Cuối tháng 9", startAt: new Date(2026, 8, 30, 20) });
+    await createEvent("alice", { title: "Đầu tháng 10", startAt: new Date(2026, 9, 1, 8) });
+    await createEvent("alice", { title: "Tháng 11", startAt: new Date(2026, 10, 1, 8) });
+
+    const october = await firstResult<CalendarEvent>((onData, onError) => subscribeToEventsInMonth("alice", "2026-10", onData, onError));
+    expect(titlesOf(october)).toEqual(["Đầu tháng 10"]);
+  });
+
+  test("người khác không đọc hay đếm được dữ liệu theo tháng", async () => {
+    const bob = testEnvironment.authenticatedContext("bob").firestore() as unknown as Firestore;
+    sdkDb = bob;
+    await expect(
+      firstResult((onData, onError) => subscribeToTasksInMonth("alice", "2026-10", onData, onError)),
+    ).rejects.toThrow();
+    await expect(countDoneTasks("alice")).rejects.toThrow();
   });
 });

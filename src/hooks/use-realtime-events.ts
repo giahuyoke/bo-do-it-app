@@ -1,27 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useMergedListeners } from "@/hooks/use-merged-listeners";
 import type { CalendarEvent } from "@/lib/firebase/models";
-import { subscribeToEvents } from "@/lib/firebase/events";
+import { subscribeToEvents, subscribeToEventsInMonth } from "@/lib/firebase/events";
+import type { MonthKey } from "@/lib/load-window";
 
-export function useRealtimeEvents(userId: string) {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+/** Events that start in `months`; `loadAll` adds the 200 earliest of any date. */
+export function useRealtimeEvents(userId: string, months: readonly MonthKey[], loadAll: boolean) {
+  const keys = useMemo(
+    () => [...months.map((month) => `month:${month}`), ...(loadAll ? ["all"] : [])],
+    [months, loadAll],
+  );
+  const { items, loading, fetching, error } = useMergedListeners<CalendarEvent>(userId, keys, (key) => {
+    if (key === "all") return (onData, onError) => subscribeToEvents(userId, onData, onError);
+    const month = key.slice("month:".length);
+    return (onData, onError) => subscribeToEventsInMonth(userId, month, onData, onError);
+  });
 
-  useEffect(() => {
-    return subscribeToEvents(
-      userId,
-      (nextEvents) => {
-        setEvents(nextEvents);
-        setLoading(false);
-      },
-      (nextError) => {
-        setError(nextError);
-        setLoading(false);
-      },
-    );
-  }, [userId]);
+  const events = useMemo(
+    () => [...items].sort((left, right) => left.startAt.getTime() - right.startAt.getTime()),
+    [items],
+  );
 
-  return { events, loading, error };
+  return { events, loading, fetching, error };
 }

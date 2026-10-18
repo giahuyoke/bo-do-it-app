@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getCountFromServer,
   limit,
   onSnapshot,
   orderBy,
@@ -8,14 +9,19 @@ import {
   runTransaction,
   serverTimestamp,
   Timestamp,
+  where,
   type DocumentReference,
+  type Query,
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "@/lib/firebase/client";
 import { documentData, readDate } from "@/lib/firebase/document-data";
 import { historyWrite } from "@/lib/firebase/history";
 import { deleteLogged, saveLoggedSeries, type LoggedKind } from "@/lib/firebase/logged-writes";
-import type { Task, TaskInput } from "@/lib/firebase/models";
+import { taskStatuses, type Task, type TaskInput } from "@/lib/firebase/models";
+import { monthBounds, type MonthKey } from "@/lib/load-window";
+
+const openTaskStatuses = taskStatuses.filter((status) => status !== "done");
 
 function tasksCollection(userId: string) {
   return collection(getFirestoreDb(), "users", userId, "tasks");
@@ -128,6 +134,21 @@ export function deleteTask(userId: string, taskId: string) {
   return deleteLogged(userId, taskKind(userId), taskId);
 }
 
+function listenToTasks(
+  tasksQuery: Query,
+  onData: (tasks: Task[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(
+    tasksQuery,
+    (snapshot) => {
+      onData(snapshot.docs.map((item) => taskFromDocument(documentData(item))));
+    },
+    onError,
+  );
+}
+
+/** The 200 newest tasks, whatever their date or status. */
 export function subscribeToTasks(
   userId: string,
   onData: (tasks: Task[]) => void,
@@ -138,12 +159,48 @@ export function subscribeToTasks(
     orderBy("createdAt", "desc"),
     limit(200),
   );
+  return listenToTasks(tasksQuery, onData, onError);
+}
 
-  return onSnapshot(
-    tasksQuery,
-    (snapshot) => {
-      onData(snapshot.docs.map((item) => taskFromDocument(documentData(item))));
-    },
-    onError,
+/** Every task not done yet, dated or not, so overdue work never drops out of view. */
+export function subscribeToOpenTasks(
+  userId: string,
+  onData: (tasks: Task[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const tasksQuery = query(
+    tasksCollection(userId),
+    where("status", "in", openTaskStatuses),
+    limit(200),
   );
+  return listenToTasks(tasksQuery, onData, onError);
+}
+
+/** Tasks, done or not, that start in one month. */
+export function subscribeToTasksInMonth(
+  userId: string,
+  month: MonthKey,
+  onData: (tasks: Task[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const { start, end } = monthBounds(month);
+  const tasksQuery = query(
+    tasksCollection(userId),
+    where("deadline", ">=", Timestamp.fromDate(start)),
+    where("deadline", "<", Timestamp.fromDate(end)),
+    orderBy("deadline", "asc"),
+    limit(200),
+  );
+  return listenToTasks(tasksQuery, onData, onError);
+}
+
+/**
+ * How many tasks are done, counted on the server so the total holds while
+ * only some months are loaded. Capped at 200 by the rules' list limit.
+ */
+export async function countDoneTasks(userId: string) {
+  const snapshot = await getCountFromServer(
+    query(tasksCollection(userId), where("status", "==", "done"), limit(200)),
+  );
+  return snapshot.data().count;
 }
