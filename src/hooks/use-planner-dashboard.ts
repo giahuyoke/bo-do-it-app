@@ -1,12 +1,13 @@
 "use client";
 
 import dayjs, { type Dayjs } from "dayjs";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ItemFilter } from "@/components/dashboard/dashboard-types";
 import type { DashboardSection } from "@/components/dashboard/dashboard-sidebar";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { useRealtimeTags } from "@/hooks/use-realtime-tags";
 import { useRealtimeTasks } from "@/hooks/use-realtime-tasks";
+import { plannerMonths } from "@/lib/load-window";
 import {
   compareByCreation,
   comparePlannerItems,
@@ -21,6 +22,8 @@ interface UsePlannerDashboardOptions {
   filter: ItemFilter;
   search: string;
   selectedDate: Dayjs;
+  /** The month or week the calendar shows; its months get loaded. */
+  visibleDate: Dayjs;
   section: DashboardSection;
 }
 
@@ -29,10 +32,22 @@ export function usePlannerDashboard({
   filter,
   search,
   selectedDate,
+  visibleDate,
   section,
 }: UsePlannerDashboardOptions) {
-  const tasksState = useRealtimeTasks(userId);
-  const eventsState = useRealtimeEvents(userId);
+  // Only months around today and around what the calendar shows are loaded;
+  // "load all" adds the newest tasks and earliest events of any date on top.
+  const [loadAll, setLoadAll] = useState({ userId: "", on: false });
+  const allRequested = loadAll.on && loadAll.userId === userId;
+  const todayKey = dayjs().format("YYYY-MM-DD");
+  const visibleKey = visibleDate.format("YYYY-MM");
+  const selectedKey = selectedDate.format("YYYY-MM");
+  const months = useMemo(
+    () => plannerMonths(dayjs(todayKey), dayjs(`${visibleKey}-01`), dayjs(`${selectedKey}-01`)),
+    [todayKey, visibleKey, selectedKey],
+  );
+  const tasksState = useRealtimeTasks(userId, months, allRequested);
+  const eventsState = useRealtimeEvents(userId, months, allRequested);
   const tagsState = useRealtimeTags(userId);
 
   const allTags = tagsState.tags;
@@ -103,9 +118,9 @@ export function usePlannerDashboard({
         );
       }).length,
       tasks: tasksState.tasks.filter((task) => task.status !== "done").length,
-      completed: tasksState.tasks.filter((task) => task.status === "done").length,
+      completed: tasksState.doneCount,
     };
-  }, [allItems, tasksState.tasks]);
+  }, [allItems, tasksState.tasks, tasksState.doneCount]);
 
   const selectedItems = useMemo(
     () =>
@@ -163,6 +178,10 @@ export function usePlannerDashboard({
     counts,
     eventError: eventsState.error,
     loading: tasksState.loading || eventsState.loading,
+    fetching: tasksState.fetching || eventsState.fetching,
+    /** True once "load all" was asked for; plans outside the loaded months may be missing until then. */
+    allRequested,
+    loadAll: () => setLoadAll({ userId, on: true }),
     nextReminder,
     pendingTasks,
     selectedItems,
