@@ -18,6 +18,7 @@ import {
 import { Drawer, Dropdown, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useInfoMenu } from "@/components/info-menu";
 import { ItemTitle } from "@/components/planner/item-title";
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { useThemeMenuItems } from "@/components/theme-menu";
@@ -416,6 +417,7 @@ export function DashboardSidebar(props: NavigationProps) {
       {collapsed ? null : <span>Cài đặt</span>}
     </button>
   );
+  const info = useInfoMenu();
   return (
     <aside className={`planner-sidebar ${collapsed ? "is-collapsed" : ""}`}>
       <div className="planner-sidebar-scroll">
@@ -451,7 +453,11 @@ export function DashboardSidebar(props: NavigationProps) {
         )}
       </div>
 
-      <Dropdown trigger={["click"]} placement="topLeft" menu={{ items: themeItems }}>
+      <Dropdown
+        trigger={["click"]}
+        placement="topLeft"
+        menu={{ items: [...themeItems, { type: "divider" }, ...info.items] }}
+      >
         {collapsed ? (
           <Tooltip title="Cài đặt" placement="right">
             {settings}
@@ -460,6 +466,7 @@ export function DashboardSidebar(props: NavigationProps) {
           settings
         )}
       </Dropdown>
+      {info.modal}
     </aside>
   );
 }

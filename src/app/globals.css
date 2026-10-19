@@ -3246,3 +3246,23 @@ button.history-entry-toggle {
 .history-more {
   align-self: center;
 }
+
+/* "Về chúng tôi" / "Ghi chú cập nhật" dialogs from the settings menu. */
+.info-dialog .planner-brand {
+  margin-bottom: 16px;
+}
+.info-dialog-scroll {
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  padding: 8px 4px 0;
+}
+.info-dialog-heading.ant-typography {
+  margin: 2px 0 6px;
+}
+.info-dialog-list {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  color: var(--muted);
+  line-height: 1.6;
+}

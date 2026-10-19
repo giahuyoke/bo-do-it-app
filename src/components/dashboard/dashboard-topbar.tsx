@@ -3,6 +3,7 @@
 import { MenuOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Input, Typography } from "antd";
 import type { User } from "firebase/auth";
+import { useInfoMenu } from "@/components/info-menu";
 import { useThemeMenuItems } from "@/components/theme-menu";
 
 const { Text, Title } = Typography;
@@ -32,6 +33,7 @@ export function DashboardTopbar({
   onSignOut,
 }: DashboardTopbarProps) {
   const themeItems = useThemeMenuItems();
+  const info = useInfoMenu();
   return (
     <header className="planner-topbar">
       <div className="flex min-w-0 items-center gap-3">
@@ -80,6 +82,8 @@ export function DashboardTopbar({
               { type: "divider" },
               ...themeItems,
               { type: "divider" },
+              ...info.items,
+              { type: "divider" },
               {
                 key: "logout",
                 danger: true,
@@ -99,6 +103,7 @@ export function DashboardTopbar({
             </Avatar>
           </button>
         </Dropdown>
+        {info.modal}
       </div>
     </header>
   );
