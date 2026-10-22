@@ -8,6 +8,14 @@ export interface PatchNote {
 /** Newest first. Add a new entry at the top for each release. */
 export const patchNotes: PatchNote[] = [
   {
+    date: "2026-10-22",
+    title: "Logo mới & trang đăng nhập mới",
+    changes: [
+      "Logo mới: trang planner với dấu tick và trái tim nhỏ, dùng cho sidebar và biểu tượng app.",
+      "Làm lại trang đăng nhập với phần giới thiệu và bản xem trước kế hoạch hôm nay.",
+    ],
+  },
+  {
     date: "2026-10-19",
     title: "Lịch sử & đồng bộ nhanh hơn",
     changes: [

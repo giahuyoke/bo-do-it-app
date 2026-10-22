@@ -18,6 +18,7 @@ import {
 import { Drawer, Dropdown, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { useInfoMenu } from "@/components/info-menu";
 import { ItemTitle } from "@/components/planner/item-title";
 import { ToolIcon } from "@/components/tools/tool-icon";
@@ -422,7 +423,7 @@ export function DashboardSidebar(props: NavigationProps) {
     <aside className={`planner-sidebar ${collapsed ? "is-collapsed" : ""}`}>
       <div className="planner-sidebar-scroll">
         <div className="planner-brand">
-          <span className="planner-logo">B</span>
+          <BrandMark className="planner-logo" />
           {collapsed ? null : (
             <div>
               <strong>Bo do it</strong>

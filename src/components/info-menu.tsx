@@ -4,6 +4,7 @@ import { HeartOutlined, InfoCircleOutlined, ReadOutlined } from "@ant-design/ico
 import { Modal, Timeline, Typography, type MenuProps } from "antd";
 import dayjs from "dayjs";
 import { useState, type ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { patchNotes } from "@/lib/patch-notes";
 
 const { Paragraph, Text, Title } = Typography;
@@ -14,7 +15,7 @@ function AboutContent() {
   return (
     <div className="info-dialog">
       <div className="planner-brand">
-        <span className="planner-logo">B</span>
+        <BrandMark className="planner-logo" />
         <div>
           <strong>Bo do it</strong>
           <span>For my wife</span>
