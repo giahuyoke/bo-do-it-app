@@ -1278,14 +1278,18 @@ a:focus-visible {
 }
 .planner-calendar-card .ant-picker-cell {
   border-color: var(--grid-line);
+  vertical-align: top;
 }
 .planner-date-number-row {
   color: var(--text-strong);
   font-weight: 600;
   font-size: 14px;
 }
+/* Fixed height fits three chips plus "+N mục khác", so a busy day never
+   makes its week taller than the others. */
 .planner-date-cell {
-  min-height: 108px;
+  height: 134px;
+  overflow: hidden;
 }
 .planner-date-cell:hover {
   background: var(--surface-hover);
