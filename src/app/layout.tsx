@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { Providers } from "@/components/providers";
 import { themeBootScript } from "@/lib/theme";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const font = Be_Vietnam_Pro({
@@ -46,6 +47,7 @@ export default function RootLayout({
         <AntdRegistry>
           <Providers>{children}</Providers>
         </AntdRegistry>
+        <SpeedInsights />
       </body>
     </html>
   );
